@@ -1028,8 +1028,8 @@ async function loadThreads() {
   try {
     const headers = { Authorization: 'Bearer ' + _token };
     const [r1, r2] = await Promise.all([
-      fetch(`https://graph.microsoft.com/v1.0/me/messages?$search="from:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview&$orderby=receivedDateTime%20desc`, { headers }),
-      fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search="to:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview&$orderby=receivedDateTime%20desc`, { headers })
+      fetch(`https://graph.microsoft.com/v1.0/me/messages?$search="from:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`, { headers }),
+      fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search="to:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`, { headers })
     ]);
     if (!r1.ok) {
       const e = await r1.json().catch(() => ({}));
