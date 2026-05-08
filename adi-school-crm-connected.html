@@ -180,16 +180,27 @@ tr:hover td{background:var(--surface)}
 
 <div class="stats-bar" id="statsBar"></div>
 <div class="outbar" id="outBar">
-  <div style="font-size:16px">📧</div>
-  <div class="outbar-dot" id="outDot"></div>
-  <div style="flex:1">
-    <div style="font-size:12px;font-weight:600;color:#e8eaf0">Outlook Sync</div>
-    <div id="outInfo" style="font-size:11px;color:#666">Not connected — click to sign in with Microsoft</div>
+  <!-- Account 1: ADI -->
+  <div style="display:flex;align-items:center;gap:8px;padding-right:14px;border-right:1px solid #1a3050">
+    <div class="outbar-dot" id="outDot1"></div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:#e8eaf0">ADI</div>
+      <div id="outInfo1" style="font-size:10px;color:#666">Not connected</div>
+    </div>
+    <button id="outConnBtn1" onclick="doSignIn(1)" style="background:#0078d4;color:#fff" class="outbar-btn">🔗 Connect</button>
+  </div>
+  <!-- Account 2: Planetariums -->
+  <div style="display:flex;align-items:center;gap:8px;padding-left:2px;padding-right:14px;border-right:1px solid #1a3050">
+    <div class="outbar-dot" id="outDot2"></div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:#e8eaf0">Planetariums</div>
+      <div id="outInfo2" style="font-size:10px;color:#666">Not connected</div>
+    </div>
+    <button id="outConnBtn2" onclick="doSignIn(2)" style="background:#0078d4;color:#fff" class="outbar-btn">🔗 Connect</button>
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
-  <button id="outConnBtn" onclick="doSignIn()" style="background:#0078d4;color:#fff" class="outbar-btn">🔗 Connect Outlook</button>
 </div>
 <!-- ACTIVITY PANEL -->
 <div id="activityPanel" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);max-height:480px;overflow-y:auto"></div>
@@ -654,7 +665,14 @@ document.getElementById("emailModalOverlay").addEventListener("click",function(e
 const _CID   = "8853036e-a831-4241-99f4-701982864e64";
 const _SCOPE = "https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read openid profile offline_access";
 const _REDIR = window.location.origin + window.location.pathname;
-let _token   = null;
+
+// ── Dual-account token store
+const _accounts = {
+  1: { token: null, exp: 0, email: '', hint: 'info@australiandigitalincursions.com.au' },
+  2: { token: null, exp: 0, email: '', hint: 'info@australianplanetariums.com.au' }
+};
+// Legacy single-token alias so existing sync code (_token) still works — points to whichever account is active
+let _token = null;
 let _tokenExp = 0;
 
 // ── Build a lookup map: lowercase school name → school record
@@ -693,17 +711,22 @@ function _checkRedirect(){
   const exp   = params.get('expires_in');
   const err   = params.get('error');
   if(token){
-    _token    = token;
-    _tokenExp = Date.now() + (parseInt(exp)||3600)*1000;
+    // state encodes "acctNum|email"
+    const state = decodeURIComponent(params.get('state')||'1|');
+    const [acctStr, email] = state.split('|');
+    const acct = parseInt(acctStr) || 1;
+    _accounts[acct].token = token;
+    _accounts[acct].exp   = Date.now() + (parseInt(exp)||3600)*1000;
+    _accounts[acct].email = email;
     try{
-      sessionStorage.setItem('adi_graph_token', token);
-      sessionStorage.setItem('adi_graph_exp', _tokenExp);
-      sessionStorage.setItem('adi_graph_account', params.get('state')||'');
+      sessionStorage.setItem('adi_token_'+acct, token);
+      sessionStorage.setItem('adi_exp_'+acct,   _accounts[acct].exp);
+      sessionStorage.setItem('adi_email_'+acct,  email);
     }catch(e){}
     history.replaceState(null,'', window.location.pathname);
-    const acct = sessionStorage.getItem('adi_graph_account')||'your account';
-    _setUI(true, acct);
-    _msg("Connected! Syncing…","#38bdf8");
+    _setUI(acct, true, email);
+    _updateLegacyToken();
+    _msg("Account "+acct+" connected! Syncing…","#38bdf8");
     doSync();
   }
   if(err){
@@ -713,22 +736,41 @@ function _checkRedirect(){
 }
 
 function _restoreToken(){
-  try{
-    const t = sessionStorage.getItem('adi_graph_token');
-    const e = parseInt(sessionStorage.getItem('adi_graph_exp')||'0');
-    const a = sessionStorage.getItem('adi_graph_account')||'';
-    if(t && Date.now() < e){
-      _token = t; _tokenExp = e;
-      _setUI(true, a);
-      _msg("Connected — click Sync Now to refresh","#4ade80");
-    }
-  }catch(e){}
+  [1,2].forEach(acct=>{
+    try{
+      const t = sessionStorage.getItem('adi_token_'+acct);
+      const e = parseInt(sessionStorage.getItem('adi_exp_'+acct)||'0');
+      const a = sessionStorage.getItem('adi_email_'+acct)||'';
+      if(t && Date.now() < e){
+        _accounts[acct].token = t;
+        _accounts[acct].exp   = e;
+        _accounts[acct].email = a;
+        _setUI(acct, true, a);
+      }
+    }catch(e){}
+  });
+  _updateLegacyToken();
+  if(_token) _msg("Connected — click Sync Now to refresh","#4ade80");
 }
 
-function doSignIn(){
-  const hint = prompt("Enter your Outlook email address:", "info@australiandigitalincursions.com.au");
+// Keep legacy _token pointing to first available valid token (for existing sync code)
+function _updateLegacyToken(){
+  for(const acct of [1,2]){
+    if(_accounts[acct].token && Date.now() < _accounts[acct].exp){
+      _token    = _accounts[acct].token;
+      _tokenExp = _accounts[acct].exp;
+      return;
+    }
+  }
+  _token = null; _tokenExp = 0;
+}
+
+function doSignIn(acct){
+  acct = acct || 1;
+  const hint = prompt("Enter email for Account "+acct+":", _accounts[acct].hint);
   if(!hint) return;
-  const state = encodeURIComponent(hint);
+  _accounts[acct].hint = hint;
+  const state = encodeURIComponent(acct+'|'+hint);
   const url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
     + "?client_id=" + _CID
     + "&response_type=token"
@@ -740,18 +782,35 @@ function doSignIn(){
   window.location.href = url;
 }
 
-function doSignOut(){
-  _token=null; _tokenExp=0;
-  try{ sessionStorage.removeItem('adi_graph_token'); sessionStorage.removeItem('adi_graph_exp'); sessionStorage.removeItem('adi_graph_account'); }catch(e){}
-  _setUI(false);
-  _msg("Disconnected","#666");
+function doSignOut(acct){
+  if(!acct){ doSignOut(1); doSignOut(2); return; }
+  _accounts[acct].token = null; _accounts[acct].exp = 0; _accounts[acct].email = '';
+  try{
+    sessionStorage.removeItem('adi_token_'+acct);
+    sessionStorage.removeItem('adi_exp_'+acct);
+    sessionStorage.removeItem('adi_email_'+acct);
+  }catch(e){}
+  _setUI(acct, false);
+  _updateLegacyToken();
+  _msg("Account "+acct+" disconnected","#666");
+}
+
+// Fetch using a specific account token, or fall back to any valid token
+async function _gfAcct(acct, path, opts={}){
+  const a = _accounts[acct];
+  if(!a.token || Date.now() > a.exp) throw new Error("Account "+acct+" session expired — please reconnect");
+  const u = path.startsWith("https") ? path : "https://graph.microsoft.com/v1.0"+path;
+  const r = await fetch(u,{ ...opts, headers:{ Authorization:"Bearer "+a.token, "Content-Type":"application/json" } });
+  if(r.status===401){ _accounts[acct].token=null; _setUI(acct,false); _updateLegacyToken(); throw new Error("Account "+acct+" session expired — please reconnect"); }
+  if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error("Graph "+(e?.error?.message||r.status)); }
+  return r.status===204 ? {} : r.json();
 }
 
 async function _gf(path, opts={}){
   if(!_token || Date.now() > _tokenExp) throw new Error("Session expired — please reconnect");
   const u = path.startsWith("https") ? path : "https://graph.microsoft.com/v1.0"+path;
   const r = await fetch(u,{ ...opts, headers:{ Authorization:"Bearer "+_token, "Content-Type":"application/json" } });
-  if(r.status===401){ _token=null; _setUI(false); throw new Error("Session expired — please reconnect"); }
+  if(r.status===401){ _token=null; _updateLegacyToken(); throw new Error("Session expired — please reconnect"); }
   if(!r.ok){ throw new Error("Graph "+r.status); }
   return r.status===204 ? {} : r.json();
 }
@@ -957,15 +1016,17 @@ function filterByStatus(status){
 
 function _msg(t,c){ const el=document.getElementById("outMsg"); if(el){el.textContent=t;el.style.color=c;} }
 
-function _setUI(on,email){
-  const b=document.getElementById("outConnBtn");
-  const i=document.getElementById("outInfo");
-  const s=document.getElementById("outSyncBtn");
-  const d=document.getElementById("outDot");
-  if(b){b.textContent=on?"🔓 Disconnect":"🔗 Connect Outlook"; b.onclick=on?doSignOut:doSignIn;}
-  if(i) i.textContent=on?"✓ "+email:"Not connected — click to sign in";
-  if(s) s.style.display=on?"inline-block":"none";
+function _setUI(acct, on, email){
+  const b=document.getElementById("outConnBtn"+acct);
+  const i=document.getElementById("outInfo"+acct);
+  const d=document.getElementById("outDot"+acct);
+  if(b){b.textContent=on?"🔓 Disconnect":"🔗 Connect"; b.onclick=on?()=>doSignOut(acct):()=>doSignIn(acct);}
+  if(i) i.textContent=on?"✓ "+(email||"connected"):"Not connected";
   if(d) d.className="outbar-dot"+(on?" on":"");
+  // Show sync button if either account is connected
+  const anyOn = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
+  const s=document.getElementById("outSyncBtn");
+  if(s) s.style.display=anyOn?"inline-block":"none";
 }
 
 function toggleActivity(){
@@ -1021,26 +1082,26 @@ document.getElementById('threadModalOverlay').addEventListener('click', function
 async function loadThreads() {
   _showThreadLoading();
   document.getElementById('threadErrorBox').style.display = 'none';
-  if (!_token) { _showThreadError('Connect Outlook first — click "Connect Outlook" above.'); return; }
+  const acct1 = _accounts[1].token && Date.now() < _accounts[1].exp;
+  const acct2 = _accounts[2].token && Date.now() < _accounts[2].exp;
+  if (!acct1 && !acct2) { _showThreadError('Connect at least one Outlook account first.'); return; }
   const r = allData.find(x => x.id === _threadSchoolIdx);
   const email = (r?.email || '').trim();
   if (!email) { _showThreadError('This school has no email address.'); return; }
   try {
-    const headers = { Authorization: 'Bearer ' + _token };
-    const [r1, r2] = await Promise.all([
-      fetch(`https://graph.microsoft.com/v1.0/me/messages?$search="from:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`, { headers }),
-      fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search="to:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`, { headers })
-    ]);
-    if (!r1.ok) {
-      const e = await r1.json().catch(() => ({}));
-      _showThreadError(`Graph API error ${r1.status}: ${e?.error?.message || r1.statusText}`);
-      return;
+    const allMsgs = [];
+    for (const [acctNum, acctData] of [[1, _accounts[1]], [2, _accounts[2]]]) {
+      if (!acctData.token || Date.now() >= acctData.exp) continue;
+      const headers = { Authorization: 'Bearer ' + acctData.token };
+      const [r1, r2] = await Promise.all([
+        fetch(`https://graph.microsoft.com/v1.0/me/messages?$search="from:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`, { headers }),
+        fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search="to:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`, { headers })
+      ]);
+      if (r1.ok) { const d = await r1.json(); (d.value||[]).forEach(m=>{ m._acct=acctNum; allMsgs.push(m); }); }
+      if (r2.ok) { const d = await r2.json(); (d.value||[]).forEach(m=>{ m._acct=acctNum; allMsgs.push(m); }); }
     }
-    const d1 = await r1.json();
-    const d2 = r2.ok ? await r2.json() : { value: [] };
-    const all = [...(d1.value || []), ...(d2.value || [])];
     const seen = new Set();
-    const unique = all.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
+    const unique = allMsgs.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
     _allThreads = _groupThreads(unique);
     renderThreadList();
   } catch (e) {
@@ -1159,6 +1220,7 @@ function _renderMsgCard(m) {
         <div class="msg-date">${_fmtDateTime(m.receivedDateTime)}</div>
       </div>
       ${!m.isRead ? '<span style="font-size:9px;padding:2px 6px;border-radius:10px;background:var(--accent-dim);color:var(--accent)">Unread</span>' : ''}
+      ${m._acct===2 ? '<span style="font-size:9px;padding:2px 6px;border-radius:10px;background:var(--teal-dim);color:var(--teal)">🪐 Planetariums</span>' : ''}
     </div>
     <div>
       ${isHtml
