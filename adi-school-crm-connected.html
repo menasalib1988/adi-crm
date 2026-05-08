@@ -200,10 +200,23 @@ tr:hover td{background:var(--surface)}
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
+  <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
 </div>
 <!-- ACTIVITY PANEL -->
 <div id="activityPanel" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);max-height:480px;overflow-y:auto"></div>
+
+<!-- GONE COLD PANEL -->
+<div id="goneColdPanel" style="display:none;background:#0d1a0a;border-bottom:2px solid #f59e0b;max-height:400px;overflow-y:auto">
+  <div style="padding:12px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2000">
+    <div>
+      <span style="font-size:13px;font-weight:700;color:#f59e0b">🥶 Gone Cold — Warm Leads Awaiting Your Follow-Up</span>
+      <div style="font-size:11px;color:#a07020;margin-top:2px">These schools contacted you first, you replied, but they haven't responded in 3+ days</div>
+    </div>
+    <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="toggleGoneCold()">✕</button>
+  </div>
+  <div id="goneColdList" style="padding:12px 24px"></div>
+</div>
 
 <div class="toolbar">
   <div class="search-wrap">
@@ -910,18 +923,36 @@ async function doSync(){
       if(d["@odata.nextLink"]) url2=d["@odata.nextLink"]; else break;
     }
 
-    // ── FLAG NO-REPLY after 7 days ───────────────────────
+    // ── FLAG NO-REPLY after 3 days ───────────────────────
     const now=new Date();
     allData.forEach(r=>{
       if(r.status==="emailed"&&r.lastEmailSent){
         const days=(now-new Date(r.lastEmailSent))/864e5;
-        if(days>=7){ r.status="no_reply"; noReplyCount++; saveOverride(r); }
+        if(days>=3){ r.status="no_reply"; noReplyCount++; saveOverride(r); }
       }
+    });
+
+    // ── FLAG GONE COLD: they contacted us first, we replied, now silence 3+ days
+    allData.forEach(r=>{
+      if(!r.lastReplyDate || !r.lastEmailSent) { r.goneCold=false; return; }
+      const theyLastReplied = new Date(r.lastReplyDate);
+      const weLastSent      = new Date(r.lastEmailSent);
+      // Only flag if WE sent the most recent message (they haven't replied since)
+      if(weLastSent > theyLastReplied){
+        const daysSince = (now - weLastSent) / 864e5;
+        r.goneCold = daysSince >= 3;
+        r.goneColdSince = r.lastEmailSent;
+      } else {
+        r.goneCold = false;
+      }
+      saveOverride(r);
     });
 
     // ── UPDATE ACTIVITY PANEL ────────────────────────────
     updateActivityPanel();
-    _msg(`✓ Done — ${matched} updated · ${sentCount} sent found · ${replyCount} replies · ${noReplyCount} no-reply flagged`,"#4ade80");
+    updateGoneColdPanel();
+    const coldCount = allData.filter(r=>r.goneCold).length;
+    _msg(`✓ Done — ${matched} updated · ${sentCount} sent · ${replyCount} replies · ${noReplyCount} no-reply · ${coldCount} gone cold`,"#4ade80");
     render();
 
   } catch(e){ _msg("Error: "+e.message,"#ff5c6a"); console.error(e); }
@@ -1029,6 +1060,43 @@ function _setUI(acct, on, email){
   if(s) s.style.display=anyOn?"inline-block":"none";
 }
 
+function toggleGoneCold(){
+  const p=document.getElementById("goneColdPanel");
+  if(!p) return;
+  if(p.style.display==="none"){ p.style.display="block"; updateGoneColdPanel(); }
+  else p.style.display="none";
+}
+
+function updateGoneColdPanel(){
+  const cold = allData.filter(r=>r.goneCold).sort((a,b)=>new Date(a.goneColdSince)-new Date(b.goneColdSince));
+  // update badge
+  const badge = document.getElementById("goneColdCount");
+  if(badge) badge.textContent = cold.length;
+  const list = document.getElementById("goneColdList");
+  if(!list) return;
+  if(!cold.length){
+    list.innerHTML='<div style="font-size:13px;color:#a07020;padding:12px 0">No gone-cold schools right now 🎉</div>';
+    return;
+  }
+  const now = new Date();
+  list.innerHTML = cold.map(r=>{
+    const daysSince = Math.floor((now - new Date(r.goneColdSince)) / 864e5);
+    const daysLabel = daysSince===1?"1 day ago":daysSince+" days ago";
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #1a1400">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:#e8eaf0">${r.school}</div>
+        <div style="font-size:11px;color:#a07020;margin-top:2px">${r.city||''} · ${r.lga||''}</div>
+        <div style="font-size:11px;color:#f59e0b;margin-top:2px">📤 You replied <strong>${daysLabel}</strong> — no response since</div>
+        ${r.lastEmailSubject?`<div style="font-size:10px;color:#666;margin-top:1px;font-style:italic">"${r.lastEmailSubject.substring(0,80)}"</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="action-btn email-btn" onclick="openEmailModal(${r.id});toggleGoneCold()" style="font-size:11px">✉ Follow Up</button>
+        <button class="action-btn" onclick="openThreadViewer(${r.id})" style="font-size:11px;border-color:var(--teal-dim);color:var(--teal)">📬 Threads</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function toggleActivity(){
   const p=document.getElementById("activityPanel");
   if(!p) return;
@@ -1039,6 +1107,7 @@ window.addEventListener('load',function(){
   _checkRedirect();
   _restoreToken();
   setTimeout(updateActivityPanel, 500);
+  setTimeout(updateGoneColdPanel, 500);
 });
 // ── END OUTLOOK SYNC ──────────────────────────────────────
 
