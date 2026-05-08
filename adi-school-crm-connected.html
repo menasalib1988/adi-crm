@@ -113,6 +113,53 @@ tr:hover td{background:var(--surface)}
 .outbar-dot.on{background:#4ade80}
 .outbar-btn{border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
 
+/* ── EMAIL THREAD VIEWER ── */
+.thread-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+.thread-modal-overlay.open{display:flex}
+.thread-modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:820px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.thread-modal-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.thread-modal-header h2{font-size:15px;font-weight:600;margin:0;color:var(--text)}
+.thread-modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+.thread-modal-footer{padding:10px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.thread-school-info{background:var(--accent-dim);border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px}
+.thread-filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.thread-chip{padding:3px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;cursor:pointer;font-weight:500;color:var(--muted);transition:.15s;font-family:"DM Sans",sans-serif}
+.thread-chip.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.thread-search-row{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.thread-search-row input[type="text"]{flex:1;padding:7px 10px 7px 10px}
+.thread-list{list-style:none;margin:0;padding:0}
+.thread-item{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;background:var(--surface)}
+.thread-item:hover{border-color:var(--border2)}
+.thread-item-header{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none}
+.thread-item-header:hover{background:var(--surface2)}
+.thread-subject{font-weight:500;font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.thread-meta{font-size:10px;color:var(--muted);white-space:nowrap}
+.thread-count-badge{background:var(--accent);color:#fff;border-radius:20px;padding:1px 6px;font-size:10px;font-weight:700}
+.thread-unread .thread-subject{color:var(--accent)}
+.thread-chevron{font-size:9px;color:var(--muted);transition:transform .2s}
+.thread-item.expanded .thread-chevron{transform:rotate(90deg)}
+.thread-messages{background:var(--bg);border-top:1px solid var(--border)}
+.msg-card{margin:8px;border-radius:8px;background:var(--surface);border:1px solid var(--border);padding:12px 14px}
+.msg-header{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.msg-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.msg-from{font-weight:600;font-size:12px;color:var(--text)}
+.msg-date{font-size:10px;color:var(--muted);margin-top:1px}
+.msg-to{font-size:10px;color:var(--muted)}
+.msg-body{font-size:12px;line-height:1.65;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+.msg-body-html{font-size:12px;line-height:1.65}
+.msg-body-html *{max-width:100%}
+.toggle-html-btn{font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer;padding:3px 0;text-decoration:underline;font-family:"DM Sans",sans-serif}
+.thread-empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.thread-loading-wrap{text-align:center;padding:30px;color:var(--muted)}
+.thread-spinner{display:inline-block;width:22px;height:22px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:tspin .7s linear infinite}
+@keyframes tspin{to{transform:rotate(360deg)}}
+.thread-error-box{background:var(--amber-dim);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--amber)}
+.thread-pagination{display:flex;align-items:center;gap:5px;justify-content:center;margin-top:12px}
+.tpage-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--text);cursor:pointer;font-family:"DM Sans",sans-serif}
+.tpage-btn:disabled{opacity:.3;cursor:default}
+.tpage-btn.curr{background:var(--accent);border-color:var(--accent);color:#fff}
+.unread-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -404,6 +451,7 @@ function render(){
         <td style="white-space:nowrap">
           <button class="action-btn" onclick="openModal(${r.id})">Edit</button>
           <button class="action-btn email-btn" onclick="openEmailModal(${r.id})">✉ Email</button>
+          <button class="action-btn" onclick="openThreadViewer(${r.id})" style="border-color:var(--teal-dim);color:var(--teal)">📬 Threads</button>
         </td>
       </tr>
     `).join("");
@@ -936,6 +984,270 @@ window.addEventListener('load',function(){
 
 hydrate();
 render();
+
+// ── EMAIL THREAD VIEWER ──────────────────────────────────
+let _threadSchoolIdx = null;
+let _allThreads = [];
+let _threadFilter = 'all';
+let _threadPage = 1;
+const THREADS_PER_PAGE = 8;
+
+function openThreadViewer(id) {
+  const r = allData.find(x => x.id === id);
+  if (!r) return;
+  _threadSchoolIdx = id;
+  _threadPage = 1;
+  _threadFilter = 'all';
+  _allThreads = [];
+  document.getElementById('threadSchoolName').textContent = r.school || 'School';
+  document.getElementById('threadSchoolEmail').textContent = r.email || '';
+  document.getElementById('threadSearch').value = '';
+  document.getElementById('threadErrorBox').style.display = 'none';
+  document.getElementById('threadPagination').style.display = 'none';
+  document.getElementById('threadCountLabel').textContent = '';
+  document.querySelectorAll('.thread-chip').forEach(c => c.classList.toggle('active', c.dataset.tfilter === 'all'));
+  _showThreadLoading();
+  document.getElementById('threadModalOverlay').classList.add('open');
+  loadThreads();
+}
+
+function closeThreadModal() {
+  document.getElementById('threadModalOverlay').classList.remove('open');
+}
+document.getElementById('threadModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeThreadModal();
+});
+
+async function loadThreads() {
+  _showThreadLoading();
+  document.getElementById('threadErrorBox').style.display = 'none';
+  if (!_token) { _showThreadError('Connect Outlook first — click "Connect Outlook" above.'); return; }
+  const r = allData.find(x => x.id === _threadSchoolIdx);
+  const email = (r?.email || '').trim();
+  if (!email) { _showThreadError('This school has no email address.'); return; }
+  try {
+    const headers = { Authorization: 'Bearer ' + _token };
+    const [r1, r2] = await Promise.all([
+      fetch(`https://graph.microsoft.com/v1.0/me/messages?$search="from:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview&$orderby=receivedDateTime%20desc`, { headers }),
+      fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$search="to:${email}"&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview&$orderby=receivedDateTime%20desc`, { headers })
+    ]);
+    if (!r1.ok) {
+      const e = await r1.json().catch(() => ({}));
+      _showThreadError(`Graph API error ${r1.status}: ${e?.error?.message || r1.statusText}`);
+      return;
+    }
+    const d1 = await r1.json();
+    const d2 = r2.ok ? await r2.json() : { value: [] };
+    const all = [...(d1.value || []), ...(d2.value || [])];
+    const seen = new Set();
+    const unique = all.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
+    _allThreads = _groupThreads(unique);
+    renderThreadList();
+  } catch (e) {
+    _showThreadError('Error: ' + e.message);
+  }
+}
+
+function _groupThreads(messages) {
+  const map = {};
+  messages.forEach(m => {
+    const cid = m.conversationId || m.id;
+    if (!map[cid]) map[cid] = [];
+    map[cid].push(m);
+  });
+  return Object.values(map).map(msgs => {
+    msgs.sort((a, b) => new Date(a.receivedDateTime) - new Date(b.receivedDateTime));
+    return {
+      conversationId: msgs[0].conversationId,
+      subject: msgs[0].subject || '(no subject)',
+      messages: msgs,
+      latest: msgs[msgs.length - 1].receivedDateTime,
+      hasUnread: msgs.some(m => !m.isRead)
+    };
+  }).sort((a, b) => new Date(b.latest) - new Date(a.latest));
+}
+
+function setThreadFilter(mode, el) {
+  _threadFilter = mode;
+  _threadPage = 1;
+  document.querySelectorAll('.thread-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderThreadList();
+}
+
+function _getFilteredThreads() {
+  const q = (document.getElementById('threadSearch')?.value || '').toLowerCase();
+  const sort = document.getElementById('threadSort')?.value || 'date-desc';
+  const r = allData.find(x => x.id === _threadSchoolIdx);
+  const schoolEmail = (r?.email || '').toLowerCase();
+  let list = [..._allThreads];
+  if (_threadFilter === 'unread') list = list.filter(t => t.hasUnread);
+  else if (_threadFilter === 'sent') list = list.filter(t => t.messages.some(m => (m.from?.emailAddress?.address || '').toLowerCase() !== schoolEmail));
+  else if (_threadFilter === 'inbox') list = list.filter(t => t.messages.some(m => (m.from?.emailAddress?.address || '').toLowerCase() === schoolEmail));
+  if (q) list = list.filter(t => t.subject.toLowerCase().includes(q) || t.messages.some(m => (m.from?.emailAddress?.address || '').toLowerCase().includes(q) || (m.from?.emailAddress?.name || '').toLowerCase().includes(q)));
+  if (sort === 'date-asc') list.sort((a, b) => new Date(a.latest) - new Date(b.latest));
+  else if (sort === 'subject') list.sort((a, b) => a.subject.localeCompare(b.subject));
+  else list.sort((a, b) => new Date(b.latest) - new Date(a.latest));
+  return list;
+}
+
+function renderThreadList() {
+  const filtered = _getFilteredThreads();
+  const total = filtered.length;
+  document.getElementById('threadCountLabel').textContent = total ? `${total} thread${total === 1 ? '' : 's'}` : '';
+  const area = document.getElementById('threadListArea');
+  if (!total) {
+    area.innerHTML = '<div class="thread-empty">📭 No email threads found for this school.</div>';
+    document.getElementById('threadPagination').style.display = 'none';
+    return;
+  }
+  const totalPages = Math.ceil(total / THREADS_PER_PAGE);
+  if (_threadPage > totalPages) _threadPage = totalPages;
+  const start = (_threadPage - 1) * THREADS_PER_PAGE;
+  const page = filtered.slice(start, start + THREADS_PER_PAGE);
+  const ul = document.createElement('ul');
+  ul.className = 'thread-list';
+  page.forEach(thread => {
+    const li = document.createElement('li');
+    li.className = 'thread-item' + (thread.hasUnread ? ' thread-unread' : '');
+    li.innerHTML = `
+      <div class="thread-item-header" onclick="toggleThread(this)">
+        <span class="thread-chevron">▶</span>
+        ${thread.hasUnread ? '<span class="unread-dot"></span>' : ''}
+        <span class="thread-subject">${_esc(thread.subject)}</span>
+        <span class="thread-count-badge">${thread.messages.length}</span>
+        <span class="thread-meta">${_fmtDate(thread.latest)}</span>
+      </div>
+      <div class="thread-messages" style="display:none">${thread.messages.map(_renderMsgCard).join('')}</div>`;
+    ul.appendChild(li);
+  });
+  area.innerHTML = '';
+  area.appendChild(ul);
+  const pg = document.getElementById('threadPagination');
+  if (totalPages > 1) {
+    pg.style.display = 'flex';
+    pg.innerHTML = `<button class="tpage-btn" onclick="_goThreadPage(${_threadPage - 1})" ${_threadPage === 1 ? 'disabled' : ''}>‹</button>` +
+      Array.from({ length: totalPages }, (_, i) => `<button class="tpage-btn${i + 1 === _threadPage ? ' curr' : ''}" onclick="_goThreadPage(${i + 1})">${i + 1}</button>`).join('') +
+      `<button class="tpage-btn" onclick="_goThreadPage(${_threadPage + 1})" ${_threadPage === totalPages ? 'disabled' : ''}>›</button>`;
+  } else {
+    pg.style.display = 'none';
+  }
+}
+
+function _goThreadPage(p) { _threadPage = p; renderThreadList(); }
+
+function toggleThread(header) {
+  const li = header.closest('.thread-item');
+  const msgs = li.querySelector('.thread-messages');
+  const open = li.classList.contains('expanded');
+  li.classList.toggle('expanded', !open);
+  msgs.style.display = open ? 'none' : 'block';
+}
+
+function _renderMsgCard(m) {
+  const from = m.from?.emailAddress || {};
+  const initials = (from.name || from.address || '?').charAt(0).toUpperCase();
+  const toList = (m.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', ');
+  const isHtml = m.body?.contentType === 'html';
+  const msgId = m.id.replace(/[^a-z0-9]/gi, '_').slice(0, 60);
+  return `<div class="msg-card">
+    <div class="msg-header">
+      <div class="msg-avatar">${_esc(initials)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="msg-from">${_esc(from.name || from.address || 'Unknown')}</div>
+        ${toList ? `<div class="msg-to">To: ${_esc(toList)}</div>` : ''}
+        <div class="msg-date">${_fmtDateTime(m.receivedDateTime)}</div>
+      </div>
+      ${!m.isRead ? '<span style="font-size:9px;padding:2px 6px;border-radius:10px;background:var(--accent-dim);color:var(--accent)">Unread</span>' : ''}
+    </div>
+    <div>
+      ${isHtml
+        ? `<button class="toggle-html-btn" onclick="toggleMsgHtml(this,'${msgId}')">Show formatted</button>
+           <div id="tb_${msgId}" class="msg-body">${_esc(m.bodyPreview || '(no preview)')}</div>
+           <div id="th_${msgId}" class="msg-body-html" style="display:none">${m.body?.content || ''}</div>`
+        : `<div class="msg-body">${_esc(m.bodyPreview || '')}</div>`}
+    </div>
+  </div>`;
+}
+
+function toggleMsgHtml(btn, msgId) {
+  const t = document.getElementById('tb_' + msgId);
+  const h = document.getElementById('th_' + msgId);
+  const showing = h.style.display !== 'none';
+  if (t) t.style.display = showing ? '' : 'none';
+  if (h) h.style.display = showing ? 'none' : '';
+  btn.textContent = showing ? 'Show formatted' : 'Show plain text';
+}
+
+function _showThreadLoading() {
+  document.getElementById('threadListArea').innerHTML = '<div class="thread-loading-wrap"><div class="thread-spinner"></div><p style="margin-top:8px;font-size:12px">Loading email threads…</p></div>';
+  document.getElementById('threadPagination').style.display = 'none';
+}
+
+function _showThreadError(msg) {
+  const el = document.getElementById('threadErrorBox');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('threadListArea').innerHTML = '<div class="thread-empty">⚠️ ' + _esc(msg) + '</div>';
+}
+
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), now = new Date(), diff = now - d;
+  if (diff < 86400000 && d.getDate() === now.getDate()) return d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 7 * 86400000) return d.toLocaleDateString('en-AU', { weekday: 'short' });
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function _fmtDateTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+// ── END EMAIL THREAD VIEWER ──────────────────────────────
 </script>
+
+<!-- EMAIL THREAD VIEWER MODAL -->
+<div class="thread-modal-overlay" id="threadModalOverlay">
+  <div class="thread-modal">
+    <div class="thread-modal-header">
+      <h2>📬 Email Threads</h2>
+      <button class="btn ghost" style="padding:3px 10px;font-size:12px" onclick="closeThreadModal()">✕</button>
+    </div>
+    <div class="thread-modal-body">
+      <div class="thread-school-info">
+        <span>🏫</span><span id="threadSchoolName"></span>
+        <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="threadSchoolEmail"></span>
+      </div>
+      <div class="thread-filter-row">
+        <div class="thread-chip active" data-tfilter="all" onclick="setThreadFilter('all',this)">All</div>
+        <div class="thread-chip" data-tfilter="inbox" onclick="setThreadFilter('inbox',this)">Inbox</div>
+        <div class="thread-chip" data-tfilter="sent" onclick="setThreadFilter('sent',this)">Sent</div>
+        <div class="thread-chip" data-tfilter="unread" onclick="setThreadFilter('unread',this)">Unread</div>
+      </div>
+      <div class="thread-search-row">
+        <input type="text" id="threadSearch" placeholder="Search subject or sender…" oninput="renderThreadList()">
+        <select id="threadSort" onchange="renderThreadList()" style="font-size:12px;padding:7px 8px">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="subject">Subject A–Z</option>
+        </select>
+        <button class="btn ghost" style="font-size:11px;padding:6px 10px" onclick="loadThreads()">🔄</button>
+      </div>
+      <div id="threadErrorBox" style="display:none" class="thread-error-box"></div>
+      <div id="threadListArea">
+        <div class="thread-loading-wrap"><div class="thread-spinner"></div><p style="margin-top:8px;font-size:12px">Loading…</p></div>
+      </div>
+      <div class="thread-pagination" id="threadPagination" style="display:none"></div>
+    </div>
+    <div class="thread-modal-footer">
+      <span style="font-size:11px;color:var(--muted)" id="threadCountLabel"></span>
+      <button class="btn ghost" style="font-size:12px" onclick="closeThreadModal()">Close</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
