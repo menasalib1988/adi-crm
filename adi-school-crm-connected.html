@@ -829,99 +829,104 @@ async function _gf(path, opts={}){
 }
 
 async function doSync(){
-  if(!_token){ _msg("Not connected — click Connect Outlook","#f59e0b"); return; }
+  const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
+  if(!connectedAccounts.length){ _msg("Not connected — click Connect Outlook","#f59e0b"); return; }
   _msg("Building school index…","#38bdf8");
   const idx = buildSchoolIndex();
   let matched=0, sentCount=0, replyCount=0, noReplyCount=0;
 
   try{
-    // ── SCAN SENT ITEMS ──────────────────────────────────
-    _msg("Scanning sent emails…","#38bdf8");
-    let url="/me/mailFolders/SentItems/messages?$top=100&$select=toRecipients,sentDateTime,subject,bodyPreview&$orderby=sentDateTime desc";
-    for(let p=0;p<20;p++){
-      const d = await _gf(url);
-      const msgs = d.value||[];
-      if(!msgs.length) break;
-      msgs.forEach(msg=>{
-        const dt = new Date(msg.sentDateTime);
-        // Try subject match first
-        let school = findSchoolInSubject(msg.subject, idx);
-        // Fallback: email address match
-        if(!school){
-          (msg.toRecipients||[]).forEach(rec=>{
-            const em=(rec.emailAddress?.address||"").toLowerCase();
-            const s=allData.find(r=>r.email&&r.email.toLowerCase()===em);
-            if(s) school=s;
-          });
-        }
-        if(school){
-          sentCount++;
-          if(!school.lastEmailSent||new Date(school.lastEmailSent)<dt){
-            school.lastEmailSent    = msg.sentDateTime;
-            school.lastEmailSubject = msg.subject;
-            school.lastContact      = dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
-          }
-          // Log to call log if not already there
-          if(!school.callLog) school.callLog=[];
-          const already = school.callLog.find(e=>e.emailMsgId===msg.id);
-          if(!already){
-            school.callLog.push({
-              dt: dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}),
-              outcome:"Email sent",
-              notes: msg.subject||"",
-              rating:"",
-              emailMsgId: msg.id,
-              type:"email_sent"
-            });
-          }
-          if(["not_contacted","contacted"].includes(school.status)){ school.status="emailed"; matched++; }
-          saveOverride(school);
-        }
-      });
-      if(d["@odata.nextLink"]) url=d["@odata.nextLink"]; else break;
-    }
+    for(const acctNum of connectedAccounts){
+      const acctLabel = acctNum===2 ? "Planetariums" : "ADI";
 
-    // ── SCAN INBOX FOR REPLIES ───────────────────────────
-    _msg("Scanning inbox for replies…","#38bdf8");
-    let url2="/me/mailFolders/Inbox/messages?$top=100&$select=from,receivedDateTime,subject,bodyPreview,isRead&$orderby=receivedDateTime desc";
-    for(let p=0;p<10;p++){
-      const d = await _gf(url2);
-      const msgs = d.value||[];
-      if(!msgs.length) break;
-      msgs.forEach(msg=>{
-        const dt = new Date(msg.receivedDateTime);
-        let school = findSchoolInSubject(msg.subject, idx);
-        if(!school){
-          const em=(msg.from?.emailAddress?.address||"").toLowerCase();
-          school=allData.find(r=>r.email&&r.email.toLowerCase()===em)||null;
-        }
-        if(school){
-          replyCount++;
-          if(!school.lastReplyDate||new Date(school.lastReplyDate)<dt){
-            school.lastReplyDate    = msg.receivedDateTime;
-            school.lastReplySubject = msg.subject;
-            school.lastReplyRead    = msg.isRead;
-            school.lastReplyPreview = (msg.bodyPreview||"").substring(0,200);
-            school.lastReplySender  = msg.from?.emailAddress?.address||"";
-          }
-          if(!school.callLog) school.callLog=[];
-          const already = school.callLog.find(e=>e.emailMsgId===msg.id);
-          if(!already){
-            school.callLog.push({
-              dt: dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"}),
-              outcome:"📥 They replied",
-              notes: (msg.subject||"") + (msg.bodyPreview ? " — "+msg.bodyPreview.substring(0,100) : ""),
-              rating:"good",
-              emailMsgId: msg.id,
-              type:"email_received"
+      // ── SCAN SENT ITEMS ──────────────────────────────────
+      _msg("Scanning "+acctLabel+" sent emails…","#38bdf8");
+      let url="/me/mailFolders/SentItems/messages?$top=100&$select=toRecipients,sentDateTime,subject,bodyPreview&$orderby=sentDateTime desc";
+      for(let p=0;p<20;p++){
+        const d = await _gfAcct(acctNum, url);
+        const msgs = d.value||[];
+        if(!msgs.length) break;
+        msgs.forEach(msg=>{
+          const dt = new Date(msg.sentDateTime);
+          let school = findSchoolInSubject(msg.subject, idx);
+          if(!school){
+            (msg.toRecipients||[]).forEach(rec=>{
+              const em=(rec.emailAddress?.address||"").toLowerCase();
+              const s=allData.find(r=>r.email&&r.email.toLowerCase()===em);
+              if(s) school=s;
             });
           }
-          if(["emailed","no_reply"].includes(school.status)){ school.status="replied"; matched++; }
-          saveOverride(school);
-        }
-      });
-      if(d["@odata.nextLink"]) url2=d["@odata.nextLink"]; else break;
-    }
+          if(school){
+            sentCount++;
+            if(!school.lastEmailSent||new Date(school.lastEmailSent)<dt){
+              school.lastEmailSent    = msg.sentDateTime;
+              school.lastEmailSubject = msg.subject;
+              school.lastContact      = dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
+            }
+            if(!school.callLog) school.callLog=[];
+            const already = school.callLog.find(e=>e.emailMsgId===msg.id);
+            if(!already){
+              school.callLog.push({
+                dt: dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}),
+                outcome:"Email sent",
+                notes: msg.subject||"",
+                rating:"",
+                emailMsgId: msg.id,
+                type:"email_sent",
+                acct: acctNum
+              });
+            }
+            if(["not_contacted","contacted"].includes(school.status)){ school.status="emailed"; matched++; }
+            saveOverride(school);
+          }
+        });
+        if(d["@odata.nextLink"]) url=d["@odata.nextLink"]; else break;
+      }
+
+      // ── SCAN INBOX FOR REPLIES ───────────────────────────
+      _msg("Scanning "+acctLabel+" inbox for replies…","#38bdf8");
+      let url2="/me/mailFolders/Inbox/messages?$top=100&$select=from,receivedDateTime,subject,bodyPreview,isRead&$orderby=receivedDateTime desc";
+      for(let p=0;p<10;p++){
+        const d = await _gfAcct(acctNum, url2);
+        const msgs = d.value||[];
+        if(!msgs.length) break;
+        msgs.forEach(msg=>{
+          const dt = new Date(msg.receivedDateTime);
+          let school = findSchoolInSubject(msg.subject, idx);
+          if(!school){
+            const em=(msg.from?.emailAddress?.address||"").toLowerCase();
+            school=allData.find(r=>r.email&&r.email.toLowerCase()===em)||null;
+          }
+          if(school){
+            replyCount++;
+            if(!school.lastReplyDate||new Date(school.lastReplyDate)<dt){
+              school.lastReplyDate    = msg.receivedDateTime;
+              school.lastReplySubject = msg.subject;
+              school.lastReplyRead    = msg.isRead;
+              school.lastReplyPreview = (msg.bodyPreview||"").substring(0,200);
+              school.lastReplySender  = msg.from?.emailAddress?.address||"";
+              school.lastReplyAcct    = acctNum;
+            }
+            if(!school.callLog) school.callLog=[];
+            const already = school.callLog.find(e=>e.emailMsgId===msg.id);
+            if(!already){
+              school.callLog.push({
+                dt: dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"}),
+                outcome:"📥 They replied",
+                notes: (msg.subject||"") + (msg.bodyPreview ? " — "+msg.bodyPreview.substring(0,100) : ""),
+                rating:"good",
+                emailMsgId: msg.id,
+                type:"email_received",
+                acct: acctNum
+              });
+            }
+            if(["emailed","no_reply"].includes(school.status)){ school.status="replied"; matched++; }
+            saveOverride(school);
+          }
+        });
+        if(d["@odata.nextLink"]) url2=d["@odata.nextLink"]; else break;
+      }
+    } // end account loop
 
     // ── FLAG NO-REPLY after 3 days ───────────────────────
     const now=new Date();
@@ -952,7 +957,7 @@ async function doSync(){
     updateActivityPanel();
     updateGoneColdPanel();
     const coldCount = allData.filter(r=>r.goneCold).length;
-    _msg(`✓ Done — ${matched} updated · ${sentCount} sent · ${replyCount} replies · ${noReplyCount} no-reply · ${coldCount} gone cold`,"#4ade80");
+    _msg("✓ Done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
     render();
 
   } catch(e){ _msg("Error: "+e.message,"#ff5c6a"); console.error(e); }
