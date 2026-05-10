@@ -570,6 +570,17 @@ let editId = null;
 let emailSchool = null;
 let currentTemplate = "cold";
 
+function renderLastContact(r) {
+  if (!r.lastContact) return '<span style="color:var(--muted)">—</span>';
+  const lc = r.lastContactType || '';
+  const icon = lc === 'visited' ? '🏫' : lc === 'emailed' ? '📧' : lc === 'called' ? '📞' : '📝';
+  const d = new Date(r.lastContact);
+  const daysSince = isNaN(d) ? 0 : Math.floor((Date.now() - d) / 86400000);
+  const color = daysSince > 90 ? 'var(--amber)' : 'var(--muted)';
+  const title = daysSince > 0 ? daysSince + ' days ago' : '';
+  return '<span style="color:' + color + '" title="' + title + '">' + icon + ' ' + r.lastContact + '</span>';
+}
+
 function statusLabel(s){ return STATUSES.find(x=>x.key===s)?.label||s; }
 
 function hydrate(){
@@ -656,16 +667,7 @@ function render(){
         <td style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap">${r.phone?`<a href="tel:${r.phone.replace(/[^0-9+]/g,"")}" style="color:var(--green);text-decoration:none">${r.phone}</a>`:"—"}</td>
         <td class="email-cell">${r.email?`<a href="mailto:${r.email}">${r.email}</a>`:'<span class="no-email">no email</span>'}</td>
         <td><button class="status-badge s-${r.status}" onclick="cycleStatus(${r.id})">${statusLabel(r.status)}</button></td>
-        <td style="font-size:11px;white-space:nowrap;font-family:'DM Mono',monospace">${(()=>{
-          if (!r.lastContact) return '<span style="color:var(--muted)">—</span>';
-          const lc = r.lastContactType || '';
-          const icon = lc === 'visited' ? '🏫' : lc === 'emailed' ? '📧' : lc === 'called' ? '📞' : '📝';
-          // Check if overdue (>90 days)
-          const d = new Date(r.lastContact);
-          const daysSince = isNaN(d) ? 0 : Math.floor((Date.now() - d) / 86400000);
-          const color = daysSince > 90 ? 'var(--amber)' : 'var(--muted)';
-          return `<span style="color:${color}" title="${daysSince>0?daysSince+' days ago':''}">${icon} ${r.lastContact}</span>`;
-        })()}</td>
+        <td style="font-size:11px;white-space:nowrap;font-family:'DM Mono',monospace">${renderLastContact(r)}</td>
         <td class="notes-cell ${r.notes?"has-note":""}" title="${r.notes||""}">${r.notes||"—"}</td>
         <td style="white-space:nowrap">
           <button class="action-btn" onclick="openModal(${r.id})">Edit</button>
