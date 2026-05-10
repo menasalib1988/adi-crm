@@ -439,6 +439,16 @@ tr:hover td{background:var(--surface)}
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2 id="modalTitle">Edit Contact</h2>
+
+    <!-- HISTORY BANNER -->
+    <div id="mHistoryBanner" style="margin-bottom:14px;border-radius:8px;overflow:hidden;display:none"></div>
+
+    <!-- CALL SCRIPT -->
+    <div id="mCallScript" style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:14px;margin-bottom:14px;display:none">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#34d399;margin-bottom:8px">📞 Call Script</div>
+      <div id="mCallScriptText" style="font-size:13px;color:#c0d8c0;line-height:1.8;white-space:pre-wrap"></div>
+    </div>
+
     <div class="field-group"><label>School</label><input type="text" id="mSchool"></div>
     <div class="field-group"><label>Email</label><input type="text" id="mEmail"></div>
     <div class="field-group"><label>Office Contact Name</label><input type="text" id="mContact" placeholder="e.g. Sandra, Louise, Denise"></div>
@@ -690,6 +700,113 @@ function openModal(id){
   document.getElementById("statusPicker").innerHTML = STATUSES.map(s=>`
     <button type="button" class="status-opt s-${s.key} ${r.status===s.key?"active":""}" onclick="pickStatus('${s.key}')">${s.label}</button>
   `).join("");
+
+  // ── HISTORY BANNER
+  const banner = document.getElementById("mHistoryBanner");
+  const script = document.getElementById("mCallScript");
+  const scriptText = document.getElementById("mCallScriptText");
+
+  let bannerHtml = '';
+  let bgColor = '#0d1a0a';
+  let borderColor = '#1a3a1a';
+  let textColor = '#34d399';
+  let icon = '🟢';
+  let historyLine = '';
+
+  if (r.status === 'visited' || r.previouslyVisited) {
+    bgColor='#0a1a2a'; borderColor='#1a3a5a'; textColor='#38bdf8'; icon='🏫';
+    historyLine = `Previously VISITED — planetarium show delivered. This is a rebook opportunity.`;
+    if (r.lastContact) historyLine += ` Last contact: ${r.lastContact}.`;
+  } else if (r.status === 'replied') {
+    bgColor='#0d1f0d'; borderColor='#1a4a1a'; textColor='#2dd4a0'; icon='💬';
+    historyLine = `Previously REPLIED to your outreach.`;
+    if (r.notes) historyLine += ` Notes: "${r.notes}"`;
+    if (r.lastContact) historyLine += ` Last contact: ${r.lastContact}.`;
+  } else if (r.status === 'follow_up') {
+    bgColor='#1a1400'; borderColor='#3a2a00'; textColor='#f5a623'; icon='🔁';
+    historyLine = `Flagged for FOLLOW UP.`;
+    if (r.notes) historyLine += ` Notes: "${r.notes}"`;
+    if (r.lastContact) historyLine += ` Last contact: ${r.lastContact}.`;
+  } else if (r.status === 'emailed') {
+    bgColor='#0a0e1a'; borderColor='#1e2d5c'; textColor='#4f7cff'; icon='📧';
+    historyLine = `Previously EMAILED.`;
+    if (r.lastContact) historyLine += ` Last contact: ${r.lastContact}.`;
+    if (r.notes) historyLine += ` Notes: "${r.notes}"`;
+  } else if (r.status === 'contacted') {
+    bgColor='#0a1a0a'; borderColor='#1a3a1a'; textColor='#4ade80'; icon='📞';
+    historyLine = `Previously CALLED.`;
+    if (r.contact) historyLine += ` Spoke to: ${r.contact}.`;
+    if (r.notes) historyLine += ` Notes: "${r.notes}"`;
+    if (r.lastContact) historyLine += ` Last contact: ${r.lastContact}.`;
+  } else {
+    bgColor='#0d0f14'; borderColor='#252a38'; textColor='#6b7294'; icon='❄️';
+    historyLine = `COLD — no previous contact with this school.`;
+  }
+
+  banner.style.display = 'block';
+  banner.innerHTML = `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:12px 14px">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${textColor};margin-bottom:4px">${icon} Contact History</div>
+    <div style="font-size:12px;color:${textColor};line-height:1.6">${historyLine}</div>
+  </div>`;
+
+  // ── CALL SCRIPT
+  const contactName = r.contact ? r.contact : 'there';
+  let callScriptContent = '';
+
+  if (r.status === 'visited' || r.previouslyVisited) {
+    callScriptContent = `"Hi, could I please speak with ${r.contact || 'the principal or science coordinator'}?
+
+Hi ${contactName}, my name's Mena from Australian Digital Incursions — we actually brought our planetarium dome to your school previously and the kids absolutely loved it.
+
+I'm calling because we've expanded our program and I'd love to bring it back — we now also offer VR headset experiences alongside the planetarium, so students get two incredible immersive sessions in one day.
+
+Would it be worth me sending through some information so you can have a look?
+
+[IF YES] Perfect — what's the best email to send it to?
+[IF BUSY] No problem at all — when's a better time to call back?"`;
+  } else if (r.status === 'replied' || r.status === 'follow_up') {
+    callScriptContent = `"Hi, could I please speak with ${r.contact || 'whoever handles incursions'}?
+
+Hi ${contactName}, my name's Mena from Australian Digital Incursions — you may have seen our email recently about our planetarium and VR incursions.
+
+I'm just following up to see if you'd had a chance to pass it on, and whether there's any interest in bringing something like this to your students.
+
+It's completely curriculum-aligned, we come to you, set everything up and pack down — zero work for your staff.
+
+Would it be okay if I sent through some more details?
+
+[IF YES] Fantastic — and is there someone specific I should address it to, like a science coordinator or AP?
+[IF BUSY] Of course — I'll send an email through and you can look when you get a moment."`;
+  } else if (r.status === 'emailed') {
+    callScriptContent = `"Hi, could I please speak with ${r.contact || 'whoever handles incursions or excursions'}?
+
+Hi ${contactName}, my name's Mena from Australian Digital Incursions — I sent through an email recently about our mobile planetarium and VR incursions.
+
+I'm just calling to make sure it landed in the right hands and didn't get lost in the inbox — it happens a lot with school emails!
+
+Did anyone get a chance to have a look?
+
+[IF YES] Great — any questions I can answer for you?
+[IF NO] No problem — who would be the best person to forward it to? A science coordinator or AP perhaps?
+[IF BUSY] Of course — I'll leave it with you. Thanks so much for your time."`;
+  } else {
+    // Cold call
+    callScriptContent = `"Hi, could I please speak with whoever handles incursions or excursions?
+
+Hi ${contactName}, my name's Mena — I run Australian Digital Incursions. We bring a mobile inflatable planetarium dome and VR headsets directly to school halls across NSW.
+
+It's fully curriculum-aligned, we handle all the setup and pack-down, and students get an immersive space experience unlike anything in a classroom.
+
+I'm not going to take up much of your time — would it be okay if I sent through a quick email with the details? That way you can pass it on to the right person.
+
+[IF YES] Perfect — and is there someone specific, like a science coordinator or AP?
+[IF NO/NOT INTERESTED] No problem at all, thank you for your time — have a great day.
+[IF BUSY] Of course — I'll send an email through. What's the best address?"`;
+  }
+
+  script.style.display = 'block';
+  scriptText.textContent = callScriptContent;
+
   document.getElementById("modalOverlay").classList.add("open");
 }
 
@@ -2192,7 +2309,9 @@ Please provide ALL of the following:
 4. PERSONALISATION TIPS: 2-3 specific things Mena could mention in his email to make it feel tailored to this school
 5. SUBJECT LINE: Write the best email subject line for this school
 
-Be specific. Use real information about this school where possible. If you don't know specific details, make smart inferences based on the school type, location and sector.`;
+Be specific. Use real information about this school where possible. If you don't know specific details, make smart inferences based on the school type, location and sector.
+
+IMPORTANT: Start your response directly with "📋 SCHOOL PROFILE:" — no preamble, no "here is", no "certainly", just go straight into the intel.`;
 
   try {
     const response = await fetch(
