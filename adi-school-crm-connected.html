@@ -524,7 +524,7 @@ tr:hover td{background:var(--surface)}
       <span id="copiedMsg" style="font-size:12px;color:var(--green);opacity:0;transition:opacity .3s;font-weight:500"></span>
       <div style="display:flex;gap:8px">
         <button class="btn ghost" onclick="copyEmailHTML()">📋 Copy HTML for Outlook</button>
-        <button class="btn" onclick="openOutlook()" style="background:#0078d4">📧 Open Outlook</button>
+        <button class="btn" onclick="openOutlook()" style="background:#0078d4">📧 Send in Outlook</button>
       </div>
     </div>
   </div>
@@ -1130,13 +1130,48 @@ function openOutlook(){
   if(!emailSchool) return;
   const isWarm = currentTemplate === "warm";
   const isPlain = currentTemplate === "plain";
-  const subject = isWarm
-    ? `Following Up — Australian Digital Incursions for ${emailSchool.school}`
-    : isPlain
-    ? (emailSchool._plainSubject || `${emailSchool.school} — Science, Space and Immersive Learning Coming to Your School Hall`)
-    : `Immersive School Incursions for ${emailSchool.school} — Planetarium & VR`;
+
   const to = emailSchool.email || "";
-  window.location.href = "mailto:" + to + "?subject=" + encodeURIComponent(subject);
+  const subject = isWarm
+    ? `Following Up - Australian Digital Incursions for ${emailSchool.school}`
+    : isPlain
+    ? (emailSchool._plainSubject || `${emailSchool.school} - Science, Space and Immersive Learning Coming to Your School Hall`)
+    : `Immersive School Incursions for ${emailSchool.school} - Planetarium and VR`;
+
+  // For plain/warm, pull the body text out of the preview frame
+  let body = "";
+  if (isWarm || isPlain) {
+    try {
+      const frame = document.getElementById("emailPreviewFrame");
+      if (frame && frame.contentDocument && frame.contentDocument.body) {
+        body = frame.contentDocument.body.innerText || "";
+      }
+    } catch(e) { body = ""; }
+  }
+
+  // Note: the email address (to) must NOT be encoded — only the query param values get encoded
+  const mailtoUrl = "mailto:" + to
+    + "?subject=" + encodeURIComponent(subject)
+    + (body ? "&body=" + encodeURIComponent(body) : "");
+
+  // Try ms-outlook:// (opens Outlook app on Mac/Windows/iOS/Android)
+  // Fall back to mailto: after 600ms if Outlook isn't installed
+  const msUrl = "ms-outlook://compose?to=" + to
+    + "&subject=" + encodeURIComponent(subject)
+    + (body ? "&body=" + encodeURIComponent(body) : "");
+
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+  try { iframe.src = msUrl; } catch(e) {}
+
+  setTimeout(() => {
+    try { document.body.removeChild(iframe); } catch(e) {}
+    if (!document.hidden) {
+      window.location.href = mailtoUrl;
+    }
+  }, 600);
+
   markEmailed();
 }
 
