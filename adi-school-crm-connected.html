@@ -1876,7 +1876,7 @@ function scoreAllSchools() {
   const scored = [];
   allData.forEach(r => {
     const result = scoreSchool(r);
-    if (result && result.score > -10) scored.push(result);
+    if (result) scored.push(result); // removed score > -10 filter — include all non-null
   });
   scored.sort((a, b) => b.score - a.score);
   _outreachScored = scored;
@@ -1947,7 +1947,7 @@ function renderOutreachList() {
   const list = getOutreachFiltered().slice(0, limit);
 
   if (!list.length) {
-    container.innerHTML = '<div class="outreach-empty">🎉 No schools left to contact in this filter!<br><span style="font-size:11px">Try a different filter or you\'ve done an amazing job clearing the queue.</span></div>';
+    container.innerHTML = '<div class="outreach-empty">🎉 No schools found in this filter.<br><span style="font-size:11px">Try a different filter or click Refresh List.</span></div>';
     return;
   }
 
