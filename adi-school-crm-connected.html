@@ -1272,7 +1272,8 @@ window.addEventListener('load',function(){
 
 hydrate();
 render();
-scoreAllSchools(); // populate outreach badge on load
+// Update outreach badge after all variables/functions are declared
+setTimeout(() => { scoreAllSchools(); }, 100);
 
 // ── EMAIL THREAD VIEWER ──────────────────────────────────
 let _threadSchoolIdx = null;
@@ -2108,7 +2109,7 @@ function toggleOutreachDay() {
     document.getElementById('calendarPanel').style.display = 'none';
     document.getElementById('activityPanel').style.display = 'none';
     panel.classList.add('open');
-    if (!_outreachScored.length) scoreAllSchools();
+    scoreAllSchools(); // always re-score on open
     renderOutreachList();
   }
 }
