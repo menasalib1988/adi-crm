@@ -419,6 +419,7 @@ tr:hover td{background:var(--surface)}
         <th>Phone</th>
         <th>Email</th>
         <th>Status</th>
+        <th>Last Contacted</th>
         <th>Notes</th>
         <th>Actions</th>
       </tr>
@@ -481,7 +482,19 @@ tr:hover td{background:var(--surface)}
     </div>
     <div class="field-group"><label>Notes</label><textarea id="mNotes" placeholder="e.g. Spoke to Sandra, interested in VR — follow up Term 3..."></textarea></div>
     <div class="field-group"><label>Last contacted</label><input type="text" id="mLastContact" placeholder="e.g. 4 May 2026"></div>
+    <!-- QUICK STAMP BUTTONS -->
+    <div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.15);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">⏱ Quick Stamp — what did you just do?</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="outreach-btn" style="background:rgba(79,124,255,0.1);border-color:rgba(79,124,255,0.3);color:var(--accent)" onclick="stampAction('called')">📞 Called</button>
+        <button class="outreach-btn" style="background:rgba(45,212,160,0.1);border-color:rgba(45,212,160,0.3);color:var(--green)" onclick="stampAction('emailed')">📧 Emailed</button>
+        <button class="outreach-btn" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa" onclick="stampAction('called_emailed')">📞📧 Called & Emailed</button>
+        <button class="outreach-btn" style="background:rgba(245,166,35,0.1);border-color:rgba(245,166,35,0.3);color:var(--amber)" onclick="stampAction('visited')">🏫 Visited</button>
+      </div>
+      <div id="stampConfirm" style="font-size:11px;color:var(--green);margin-top:6px;display:none"></div>
+    </div>
     <div class="modal-footer">
+      <button class="btn ghost" id="backToOutreachBtn" onclick="closeModalBackToOutreach()" style="display:none;border-color:#a78bfa;color:#a78bfa">← Back to Outreach</button>
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
       <button class="btn" onclick="saveModal()">Save</button>
     </div>
@@ -498,7 +511,8 @@ tr:hover td{background:var(--surface)}
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="switchTemplate('warm')" id="btnWarm">♻ Warm (Visited)</button>
-        <button class="btn ghost sm" onclick="switchTemplate('cold')" id="btnCold">❄ Cold (New)</button>
+        <button class="btn ghost sm" onclick="switchTemplate('cold')" id="btnCold">📧 Full Cold</button>
+        <button class="btn ghost sm" onclick="switchTemplate('plain')" id="btnPlain" style="border-color:var(--amber-dim);color:var(--amber)">✉ Plain Text (Cold)</button>
         <button class="btn ghost sm" onclick="closeEmailModal()" style="color:var(--red)">✕ Close</button>
       </div>
     </div>
@@ -639,6 +653,16 @@ function render(){
         <td style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap">${r.phone?`<a href="tel:${r.phone.replace(/[^0-9+]/g,"")}" style="color:var(--green);text-decoration:none">${r.phone}</a>`:"—"}</td>
         <td class="email-cell">${r.email?`<a href="mailto:${r.email}">${r.email}</a>`:'<span class="no-email">no email</span>'}</td>
         <td><button class="status-badge s-${r.status}" onclick="cycleStatus(${r.id})">${statusLabel(r.status)}</button></td>
+        <td style="font-size:11px;white-space:nowrap;font-family:'DM Mono',monospace">${(()=>{
+          if (!r.lastContact) return '<span style="color:var(--muted)">—</span>';
+          const lc = r.lastContactType || '';
+          const icon = lc === 'visited' ? '🏫' : lc === 'emailed' ? '📧' : lc === 'called' ? '📞' : '📝';
+          // Check if overdue (>90 days)
+          const d = new Date(r.lastContact);
+          const daysSince = isNaN(d) ? 0 : Math.floor((Date.now() - d) / 86400000);
+          const color = daysSince > 90 ? 'var(--amber)' : 'var(--muted)';
+          return `<span style="color:${color}" title="${daysSince>0?daysSince+' days ago':''}">${icon} ${r.lastContact}</span>`;
+        })()}</td>
         <td class="notes-cell ${r.notes?"has-note":""}" title="${r.notes||""}">${r.notes||"—"}</td>
         <td style="white-space:nowrap">
           <button class="action-btn" onclick="openModal(${r.id})">Edit</button>
@@ -808,6 +832,12 @@ I'm not going to take up much of your time — would it be okay if I sent throug
   scriptText.textContent = callScriptContent;
 
   document.getElementById("modalOverlay").classList.add("open");
+
+  // Show Back to Outreach if panel is open
+  const fromOutreach = document.getElementById('outreachPanel')?.classList.contains('open');
+  const backBtn = document.getElementById('backToOutreachBtn');
+  if (backBtn) backBtn.style.display = fromOutreach ? 'inline-flex' : 'none';
+  document.getElementById('stampConfirm').style.display = 'none';
 }
 
 function pickStatus(key){
@@ -817,6 +847,44 @@ function pickStatus(key){
 }
 
 function closeModal(){ document.getElementById("modalOverlay").classList.remove("open"); editId=null; }
+
+function closeModalBackToOutreach() {
+  closeModal();
+  const panel = document.getElementById('outreachPanel');
+  if (panel) panel.classList.add('open');
+}
+
+let _modalFromOutreach = false;
+
+function stampAction(type) {
+  if (!editId) return;
+  const r = allData.find(x => x.id === editId);
+  if (!r) return;
+  const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  r.lastContact = today;
+  r.lastContactType = type === 'called_emailed' ? 'emailed' : type;
+  document.getElementById('mLastContact').value = today;
+
+  const actionMap = { called: '📞 Called', emailed: '📧 Emailed', called_emailed: '📞📧 Called & Emailed', visited: '🏫 Visited' };
+  const noteAppend = `[${today}] ${actionMap[type]}.`;
+  const existingNotes = document.getElementById('mNotes').value;
+  document.getElementById('mNotes').value = existingNotes ? existingNotes + ' · ' + noteAppend : noteAppend;
+
+  if (type === 'emailed' || type === 'called_emailed') r.status = 'emailed';
+  else if (type === 'called') r.status = 'contacted';
+  else if (type === 'visited') { r.status = 'visited'; r.previouslyVisited = true; }
+
+  saveOverride(r);
+  render();
+
+  const confirm = document.getElementById('stampConfirm');
+  confirm.style.display = 'block';
+  confirm.textContent = `✅ Stamped: ${actionMap[type]} on ${today}`;
+  setTimeout(() => { confirm.style.display = 'none'; }, 3000);
+
+  // remove from outreach queue
+  _outreachSkipped.add(editId);
+}
 
 function saveModal(){
   if(!editId) return;
@@ -894,7 +962,8 @@ function buildEmail(school, contact, recipient, recipientRole, isWarm){
 function openEmailModal(id){
   emailSchool = allData.find(x=>x.id===id);
   if(!emailSchool) return;
-  currentTemplate = (emailSchool.previouslyVisited || emailSchool.status==="visited") ? "warm" : "cold";
+  const isWarm = emailSchool.previouslyVisited || emailSchool.status==="visited";
+  currentTemplate = isWarm ? "warm" : "plain";
   document.getElementById("emailModalTitle").textContent = "✉ " + emailSchool.school;
   loadEmailPreview();
   document.getElementById("emailModalOverlay").classList.add("open");
@@ -903,12 +972,66 @@ function openEmailModal(id){
 function loadEmailPreview(){
   if(!emailSchool) return;
   const isWarm = currentTemplate === "warm";
-  const html = buildEmail(emailSchool.school, emailSchool.contact, emailSchool.recipient, emailSchool.recipientRole, isWarm);
+  const isPlain = currentTemplate === "plain";
+
+  let html;
+  if (isPlain) {
+    html = buildPlainEmail(emailSchool);
+  } else {
+    html = buildEmail(emailSchool.school, emailSchool.contact, emailSchool.recipient, emailSchool.recipientRole, isWarm);
+  }
+
   document.getElementById("emailPreviewFrame").srcdoc = html;
-  document.getElementById("btnWarm").style.color = isWarm ? "var(--teal)" : "";
-  document.getElementById("btnWarm").style.borderColor = isWarm ? "var(--teal)" : "";
-  document.getElementById("btnCold").style.color = !isWarm ? "var(--accent)" : "";
-  document.getElementById("btnCold").style.borderColor = !isWarm ? "var(--accent)" : "";
+
+  // Update toggle buttons — now 3 options
+  ['btnWarm','btnCold','btnPlain'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.color = '';
+    el.style.borderColor = '';
+    el.style.background = '';
+  });
+  if (currentTemplate === 'warm') {
+    document.getElementById("btnWarm").style.color = "var(--teal)";
+    document.getElementById("btnWarm").style.borderColor = "var(--teal)";
+  } else if (currentTemplate === 'cold') {
+    document.getElementById("btnCold").style.color = "var(--accent)";
+    document.getElementById("btnCold").style.borderColor = "var(--accent)";
+  } else {
+    const pb = document.getElementById("btnPlain");
+    if (pb) { pb.style.color = "var(--amber)"; pb.style.borderColor = "var(--amber)"; }
+  }
+}
+
+// Build plain text cold email — psychologically engineered for conversion
+function buildPlainEmail(r) {
+  const contact = r.contact || 'there';
+  const school = r.school;
+  const recipient = r.recipient || 'the relevant coordinator';
+  const aiHook = r._aiHook || ''; // auto-filled from research
+  const personalLine = aiHook ? `\n\nI noticed ${aiHook}\n` : '';
+
+  const body = `Hi ${contact},
+
+My name is Mena Salib — I'm a qualified NSW teacher and Director of Australian Digital Incursions.${personalLine}
+
+I'm reaching out because we bring two curriculum-aligned incursion programs directly to your school hall — a mobile planetarium dome and Meta Quest VR headsets. No buses. No excursion paperwork. We come to you, set everything up, and deliver something your students will genuinely not forget.
+
+We've already worked with over 30 NSW schools this year, and Term 3 dates are starting to fill. I'd love to hold one for ${school} before they go.
+
+Would it be okay if I sent through the full details to ${recipient}?
+
+Happy to answer any questions — even a quick reply pointing me to the right person would be a huge help.
+
+Thank you for your time.
+
+Mena Salib (M.Edu)
+Director — Australian Digital Incursions
+0431 648 995
+info@australiandigitalincursions.com.au
+australiandigitalincursions.com.au`;
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Georgia,serif;font-size:15px;line-height:1.9;color:#1a1a1a;max-width:580px;margin:40px auto;padding:0 20px;background:#fff"><pre style="font-family:Georgia,serif;font-size:15px;line-height:1.9;white-space:pre-wrap;color:#1a1a1a;margin:0">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></body></html>`;
 }
 
 function switchTemplate(type){ currentTemplate=type; loadEmailPreview(); }
@@ -930,8 +1053,11 @@ function copyEmailHTML(){
 function openOutlook(){
   if(!emailSchool) return;
   const isWarm = currentTemplate === "warm";
+  const isPlain = currentTemplate === "plain";
   const subject = isWarm
     ? "Following Up — Immersive School Incursions for " + emailSchool.school
+    : isPlain
+    ? "Quick question for " + emailSchool.school
     : "Immersive School Incursions for " + emailSchool.school + " — Planetarium & VR";
   const to = emailSchool.email || "";
   window.location.href = "mailto:" + to + "?subject=" + encodeURIComponent(subject);
@@ -2336,6 +2462,20 @@ IMPORTANT: Start your response directly with "📋 SCHOOL PROFILE:" — no pream
 
     if (text) {
       aiArea.innerHTML = '<div style="line-height:1.7">' + text.replace(/\n/g, '<br>').replace(/(Subject:.+?)(<br>|$)/, '<strong style="color:var(--accent)">$1</strong>$2') + '</div>';
+
+      // Auto-extract a personalisation hook for the plain email
+      // Look for subject line to use as hook seed
+      const subjectMatch = text.match(/Subject:\s*(.+)/i);
+      const hookMatch = text.match(/PERSONALISATION.*?:\s*(.+?)(?:\n|$)/i) ||
+                        text.match(/personalise.*?:\s*(.+?)(?:\n|$)/i) ||
+                        text.match(/mention.*?:\s*(.+?)(?:\n|$)/i);
+
+      const hook = hookMatch ? hookMatch[1].trim() : '';
+      if (hook && r) {
+        r._aiHook = hook.replace(/^["']|["']$/g, '').toLowerCase();
+        // Also auto-fill subject line suggestion
+        if (subjectMatch) r._aiSubject = subjectMatch[1].trim();
+      }
     } else {
       aiArea.innerHTML = '<div style="color:var(--muted)">No research returned. Use the standard email template.</div>';
     }
