@@ -489,6 +489,17 @@ tr:hover td{background:var(--surface)}
 </div>
 
 <script>
+// ── NEXT OUTREACH DAY — variables declared first so nothing can call them before they exist
+let _outreachFilter = 'all';
+let _sessionEmailed = 0;
+let _outreachScored = [];
+let _outreachSkipped = new Set();
+const TARGET_EMAILS = 50;
+const VISITED_LGAS = [
+  'Sutherland Shire','Eastern Suburbs (Waverley/Randwick)','Eastern Suburbs (Woollahra)',
+  'Ryde / Parramatta North','Inner West / Strathfield','Inner West','Wollongong City',
+  'Parramatta City','Hills District','Canterbury-Bankstown','Georges River'
+];
 const STATUSES = [
   {key:"not_contacted",label:"Not contacted"},
   {key:"visited",      label:"Visited"},
@@ -1272,8 +1283,7 @@ window.addEventListener('load',function(){
 
 hydrate();
 render();
-// Update outreach badge after all variables/functions are declared
-setTimeout(() => { scoreAllSchools(); }, 100);
+setTimeout(scoreAllSchools, 50);
 
 // ── EMAIL THREAD VIEWER ──────────────────────────────────
 let _threadSchoolIdx = null;
@@ -1802,18 +1812,8 @@ function renderCalSchoolTimeline(id){
 }
 // ── NEXT OUTREACH DAY ────────────────────────────────────
 
-let _outreachFilter = 'all';
-let _sessionEmailed = 0;
-let _outreachScored = []; // cached scored list
-let _outreachSkipped = new Set(); // IDs skipped this session
-const TARGET_EMAILS = 50;
-
-// LGA clusters — schools near your visited areas get a big priority boost
-const VISITED_LGAS = [
-  'Sutherland Shire','Eastern Suburbs (Waverley/Randwick)','Eastern Suburbs (Woollahra)',
-  'Ryde / Parramatta North','Inner West / Strathfield','Inner West','Wollongong City',
-  'Parramatta City','Hills District','Canterbury-Bankstown','Georges River'
-];
+// ── NEXT OUTREACH DAY ────────────────────────────────────
+// (variables declared at top of script)
 
 function scoreSchool(r) {
   let score = 0;
@@ -2109,7 +2109,7 @@ function toggleOutreachDay() {
     document.getElementById('calendarPanel').style.display = 'none';
     document.getElementById('activityPanel').style.display = 'none';
     panel.classList.add('open');
-    scoreAllSchools(); // always re-score on open
+    scoreAllSchools();
     renderOutreachList();
   }
 }
