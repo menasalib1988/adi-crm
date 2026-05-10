@@ -457,17 +457,20 @@ tr:hover td{background:var(--surface)}
     <div class="field-group"><label>Suburb</label><input type="text" id="mCity"></div>
     <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:14px">
       <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--amber);margin-bottom:10px">📧 Email Generator Fields</div>
-      <div class="field-group" style="margin-bottom:10px"><label>Forward Email To (Name)</label><input type="text" id="mRecipient" placeholder="e.g. Nick Brierley"></div>
+      <div class="field-group" style="margin-bottom:10px"><label>Forward Email To (Name — optional)</label><input type="text" id="mRecipient" placeholder="e.g. Sandra Williams"></div>
       <div class="field-group" style="margin-bottom:10px">
-        <label>Recipient Role</label>
+        <label>Forward To (who in the school)</label>
         <select id="mRecipientRole">
-          <option value="">— Select role —</option>
+          <option value="">— Select who to forward to —</option>
+          <option value="your science and STEAM teachers">Your science and STEAM teachers</option>
+          <option value="your leadership team">Your leadership team</option>
+          <option value="your teaching staff">Your teaching staff</option>
+          <option value="whoever handles incursions and excursions">Whoever handles incursions and excursions</option>
           <option value="Principal">Principal</option>
           <option value="Assistant Principal">Assistant Principal</option>
+          <option value="STEAM Coordinator">STEAM Coordinator</option>
+          <option value="Head of Science">Head of Science</option>
           <option value="Head of Stage">Head of Stage</option>
-          <option value="Head of KLA / Science">Head of KLA / Science</option>
-          <option value="Librarian">Librarian</option>
-          <option value="STEM Coordinator">STEM Coordinator</option>
           <option value="Executive Teacher">Executive Teacher</option>
         </select>
       </div>
@@ -510,8 +513,8 @@ tr:hover td{background:var(--surface)}
         <div style="font-size:11px;color:var(--muted);margin-top:2px">Copy HTML and paste into Outlook</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button class="btn ghost sm" onclick="switchTemplate('warm')" id="btnWarm">♻ Warm (Visited)</button>
-        <button class="btn ghost sm" onclick="switchTemplate('cold')" id="btnCold">📧 Full Cold</button>
+        <button class="btn ghost sm" onclick="switchTemplate('warm')" id="btnWarm">☎ Post-Call (Warm)</button>
+        <button class="btn ghost sm" onclick="switchTemplate('cold')" id="btnCold">📧 Full HTML (Cold)</button>
         <button class="btn ghost sm" onclick="switchTemplate('plain')" id="btnPlain" style="border-color:var(--amber-dim);color:var(--amber)">✉ Plain Text (Cold)</button>
         <button class="btn ghost sm" onclick="closeEmailModal()" style="color:var(--red)">✕ Close</button>
       </div>
@@ -977,8 +980,10 @@ function loadEmailPreview(){
   let html;
   if (isPlain) {
     html = buildPlainEmail(emailSchool);
+  } else if (isWarm) {
+    html = buildPostCallEmail(emailSchool);
   } else {
-    html = buildEmail(emailSchool.school, emailSchool.contact, emailSchool.recipient, emailSchool.recipientRole, isWarm);
+    html = buildEmail(emailSchool.school, emailSchool.contact, emailSchool.recipient, emailSchool.recipientRole, false);
   }
 
   document.getElementById("emailPreviewFrame").srcdoc = html;
@@ -1003,35 +1008,106 @@ function loadEmailPreview(){
   }
 }
 
-// Build plain text cold email — psychologically engineered for conversion
-function buildPlainEmail(r) {
-  const contact = r.contact || 'there';
+}
+
+// ── HELPER: build the "forward to" line
+function buildForwardTo(r) {
+  const name = r.recipient ? r.recipient.split(' ')[0] : '';
+  const role = r.recipientRole || 'whoever handles incursions and excursions';
+  if (name && r.recipientRole) return `${name}, ${role}`;
+  if (name) return name;
+  return role;
+}
+
+// ── HELPER: render plain email HTML wrapper
+function plainWrap(subject, body) {
+  const escaped = body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;font-size:15px;line-height:1.85;color:#1a1a1a;max-width:580px;margin:40px auto;padding:0 24px;background:#fff">
+<div style="margin-bottom:16px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;color:#555;font-family:monospace"><strong>Subject:</strong> ${subject}</div>
+<pre style="font-family:Arial,sans-serif;font-size:15px;line-height:1.85;white-space:pre-wrap;color:#1a1a1a;margin:0">${escaped}</pre>
+</body></html>`;
+}
+
+// ── POST-CALL PLAIN EMAIL (warm — after speaking to office)
+function buildPostCallEmail(r) {
+  const contact = r.contact ? r.contact.split(' ')[0] : null;
+  const greeting = contact ? `Hi ${contact},` : 'Hi,';
   const school = r.school;
-  const recipient = r.recipient || 'the relevant coordinator';
-  const aiHook = r._aiHook || ''; // auto-filled from research
-  const personalLine = aiHook ? `\n\nI noticed ${aiHook}\n` : '';
+  const forwardTo = buildForwardTo(r);
+  const subject = `Following Up — Australian Digital Incursions for ${school}`;
 
-  const body = `Hi ${contact},
+  const body = `${greeting}
 
-My name is Mena Salib — I'm a qualified NSW teacher and Director of Australian Digital Incursions.${personalLine}
+It was so lovely speaking with you today — thank you again for your time and for being so welcoming.
 
-I'm reaching out because we bring two curriculum-aligned incursion programs directly to your school hall — a mobile planetarium dome and Meta Quest VR headsets. No buses. No excursion paperwork. We come to you, set everything up, and deliver something your students will genuinely not forget.
+As promised, I'm sending through some information about what we do at Australian Digital Incursions. When you get a moment, would you mind please forwarding this on to ${forwardTo}? I'd really appreciate it.
 
-We've already worked with over 30 NSW schools this year, and Term 3 dates are starting to fill. I'd love to hold one for ${school} before they go.
 
-Would it be okay if I sent through the full details to ${recipient}?
+Dear ${forwardTo},
 
-Happy to answer any questions — even a quick reply pointing me to the right person would be a huge help.
+My name is Mena Salib and I am a qualified NSW teacher with over 15 years of experience delivering engaging STEAM experiences to students across a wide range of year groups. I am also the Director of Australian Digital Incursions, where we bring Science, Space, and immersive digital learning directly to your school through our mobile inflatable planetarium dome and Meta Quest VR experiences.
 
-Thank you for your time.
+The biggest thing schools love is how easy we make everything. No buses, no excursion forms, no complicated organisation for staff. We come to you, set everything up, run the sessions, and pack everything down afterwards.
 
-Mena Salib (M.Edu)
-Director — Australian Digital Incursions
+We've recently launched our new website and I'd genuinely love for you to have a look: australiandigitalincursions.com.au
+
+I'm really proud of what we've built because the website finally reflects what students actually experience during our sessions.
+
+To be completely honest, as a teacher myself, I know schools hear a lot of promises from incursions. That's something I've always been conscious of with ADI. What matters most to us is that students walk away excited, engaged, and still talking about the experience afterwards. Some schools have even reached out the next day just to tell us the students couldn't stop talking about it, and that honestly means more to me than anything else.
+
+For your peace of mind, we are fully insured with public liability coverage, hold current Working With Children Checks, and carry all relevant risk assessments and compliance documentation. Everything is prepared and organised well before the day.
+
+We are filling quickly over the coming weeks and I would genuinely love the opportunity to bring this experience to ${school}.
+
+Please don't hesitate to reach out if you have any questions at all.
+
+Kind regards,
+
+Mena Salib (M.Ed)
+Director, Australian Digital Incursions
 0431 648 995
 info@australiandigitalincursions.com.au
 australiandigitalincursions.com.au`;
 
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Georgia,serif;font-size:15px;line-height:1.9;color:#1a1a1a;max-width:580px;margin:40px auto;padding:0 20px;background:#fff"><pre style="font-family:Georgia,serif;font-size:15px;line-height:1.9;white-space:pre-wrap;color:#1a1a1a;margin:0">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></body></html>`;
+  r._plainSubject = subject;
+  return plainWrap(subject, body);
+}
+
+// ── COLD PLAIN EMAIL (no prior contact)
+function buildPlainEmail(r) {
+  const school = r.school;
+  const lga = r.lga || 'the NSW area';
+  const forwardTo = buildForwardTo(r);
+  const aiHook = r._aiHook || '';
+  const personalLine = aiHook
+    ? `I came across ${school} while planning our upcoming schedule — ${aiHook}.`
+    : '';
+  const subject = r._aiSubject || `${school} — Science, Space and Immersive Learning Coming to Your School Hall`;
+
+  const body = `Dear ${forwardTo},
+
+My name is Mena Salib and I am a qualified NSW teacher with over 15 years of experience delivering engaging STEAM learning experiences to students across NSW. I am also the Director of Australian Digital Incursions, where we bring Science, Space, and immersive digital learning directly into school halls through our mobile inflatable planetarium dome and Meta Quest VR experiences.
+
+The biggest advantage for schools is how simple the entire process is. No buses, no excursion forms, and nothing extra for staff to organise. We come to you, set everything up, run the sessions, and pack everything down afterwards.
+${personalLine ? '\n' + personalLine + '\n' : ''}
+We have recently been delivering sessions to schools throughout the ${lga} area and bookings are filling quickly over the coming weeks. It really is an experience students don't forget.
+
+We've also recently launched our new website and I'd genuinely love for you to take a look: australiandigitalincursions.com.au
+
+For your peace of mind, we are fully insured with public liability coverage, hold current Working With Children Checks, and carry all relevant risk assessments and compliance documentation.
+
+If you have any questions at all, please don't hesitate to reach out. I would genuinely love the opportunity to bring this experience to ${school}.
+
+Kind regards,
+
+Mena Salib (M.Ed)
+Director, Australian Digital Incursions
+0431 648 995
+info@australiandigitalincursions.com.au
+australiandigitalincursions.com.au`;
+
+  r._plainSubject = subject;
+  return plainWrap(subject, body);
 }
 
 function switchTemplate(type){ currentTemplate=type; loadEmailPreview(); }
@@ -1055,10 +1131,10 @@ function openOutlook(){
   const isWarm = currentTemplate === "warm";
   const isPlain = currentTemplate === "plain";
   const subject = isWarm
-    ? "Following Up — Immersive School Incursions for " + emailSchool.school
+    ? `Following Up — Australian Digital Incursions for ${emailSchool.school}`
     : isPlain
-    ? "Quick question for " + emailSchool.school
-    : "Immersive School Incursions for " + emailSchool.school + " — Planetarium & VR";
+    ? (emailSchool._plainSubject || `${emailSchool.school} — Science, Space and Immersive Learning Coming to Your School Hall`)
+    : `Immersive School Incursions for ${emailSchool.school} — Planetarium & VR`;
   const to = emailSchool.email || "";
   window.location.href = "mailto:" + to + "?subject=" + encodeURIComponent(subject);
   markEmailed();
