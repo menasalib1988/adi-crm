@@ -1979,7 +1979,7 @@ function renderOutreachList() {
       <div class="outreach-card-header">
         <div class="outreach-rank ${rankClass}">${rank}</div>
         <div class="outreach-school-info">
-          <div class="outreach-school-name" title="${r.school}">${r.school}</div>
+          <div class="outreach-school-name" title="Click to open school profile" onclick="openModal(${r.id})" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(167,139,250,0.4)">${r.school} <span style="font-size:10px;color:var(--purple);font-weight:400">✏️ edit</span></div>
           <div class="outreach-school-meta">
             ${r.city || '?'} · ${r.lga || '?'} · ${r.schoolType || '?'} · ${r.sector || '?'}
             ${r.contact ? ' · <span style="color:var(--green)">👤 ' + r.contact + '</span>' : ''}
@@ -1998,9 +1998,10 @@ function renderOutreachList() {
         </div>
       </div>
       <div class="outreach-card-actions">
-        ${hasEmail ? `<button class="outreach-btn email" onclick="outreachEmail(${r.id})">✉ Open Email</button>` : ''}
+        <button class="outreach-btn" onclick="openModal(${r.id})" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa;font-weight:600">✏️ Open Profile</button>
+        ${hasEmail ? `<button class="outreach-btn email" onclick="outreachEmail(${r.id})">✉ Email Template</button>` : ''}
         <button class="outreach-btn research" onclick="researchSchool(${r.id}, this)">🔍 Research</button>
-        <button class="outreach-btn done" onclick="markOutreachDone(${r.id})">✅ Done</button>
+        <button class="outreach-btn" onclick="calledAndEmailed(${r.id})" style="background:rgba(45,212,160,0.12);border-color:rgba(45,212,160,0.4);color:var(--green);font-weight:600">📞✉ Called & Emailed</button>
         <button class="outreach-btn skip" onclick="skipOutreach(${r.id})">↓ Skip</button>
         ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : ''}
       </div>
@@ -2021,6 +2022,41 @@ function outreachEmail(id) {
     r.status = 'emailed';
     saveOverride(r);
     render();
+  }
+}
+
+function calledAndEmailed(id) {
+  const r = allData.find(x => x.id === id);
+  if (!r) return;
+
+  // Update status to emailed
+  r.status = 'emailed';
+
+  // Log today's date as last contact
+  const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  r.lastContact = today;
+
+  // Append to notes
+  const callNote = '[' + today + '] Called & emailed.';
+  r.notes = r.notes ? r.notes + ' · ' + callNote : callNote;
+
+  saveOverride(r);
+  render();
+
+  // Update session counter
+  _sessionEmailed++;
+  updateSessionBar();
+
+  // Remove card from outreach panel
+  _outreachSkipped.add(id);
+  const card = document.getElementById('ocard_' + id);
+  if (card) {
+    card.style.background = 'rgba(45,212,160,0.06)';
+    card.style.borderColor = 'var(--green)';
+    card.innerHTML = `<div style="padding:14px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px">
+      ✅ <strong>${r.school}</strong> — marked as Called & Emailed · ${today}
+    </div>`;
+    setTimeout(() => { card.style.display = 'none'; }, 2000);
   }
 }
 
@@ -2136,23 +2172,27 @@ async function researchSchool(id, btn) {
   btn.textContent = '⏳ Researching…';
   aiArea.innerHTML = '<div class="outreach-ai-loading"><div class="outreach-ai-spinner"></div><span>AI is researching ' + r.school + '…</span></div>';
 
-  const prompt = `You are a sales intelligence assistant for Australian Digital Incursions (ADI), a mobile planetarium and VR school incursion company in NSW Australia.
+  const prompt = `You are a sales intelligence assistant for Australian Digital Incursions (ADI), a NSW-based company that brings a mobile inflatable planetarium dome and Meta Quest VR headset incursions directly to school halls. ADI is run by Mena Salib, a qualified NSW teacher with 15+ years experience. Pricing: Planetarium $12/student (min $900), VR $20/student (min $900), Combined $23/student (min $1200).
 
-Research this school and give a brief actionable briefing in 4 sentences max:
+Research this specific school and give Mena a detailed, actionable intelligence briefing he can use to personalise his outreach email today:
+
 School: ${r.school}
 Suburb: ${r.city || 'NSW'}
-Type: ${r.schoolType} (${r.sector})
+Type: ${r.schoolType} · ${r.sector}
 Region: ${r.lga}
-${r.contact ? 'Known contact: ' + r.contact : ''}
+Email: ${r.email || 'unknown'}
+${r.contact ? 'Previously spoke to: ' + r.contact : ''}
 ${r.notes ? 'Notes from previous contact: ' + r.notes : ''}
 
-Provide:
-1. One key fact about this school (size, STEM programs, notable features)
-2. Why they'd suit a planetarium/VR incursion
-3. One personalisation tip for the email
-4. Suggested email subject line (prefix with "Subject: ")
+Please provide ALL of the following:
 
-Be specific and concise. Start directly with the intel, no preamble.`;
+1. SCHOOL PROFILE: Approximate enrolment, any known STEM/science programs, notable curriculum focus, school culture or values
+2. BOOKING FIT: Specific reasons why a planetarium or VR incursion would work well for this school (link to their curriculum, programs, or values)  
+3. BEST CONTACT STRATEGY: Who to address the email to (principal, science coordinator, STEM coordinator?), best time of year to book, any local context
+4. PERSONALISATION TIPS: 2-3 specific things Mena could mention in his email to make it feel tailored to this school
+5. SUBJECT LINE: Write the best email subject line for this school
+
+Be specific. Use real information about this school where possible. If you don't know specific details, make smart inferences based on the school type, location and sector.`;
 
   try {
     const response = await fetch(
@@ -2162,7 +2202,7 @@ Be specific and concise. Start directly with the intel, no preamble.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 400, temperature: 0.7 }
+          generationConfig: { maxOutputTokens: 1000, temperature: 0.7 }
         })
       }
     );
