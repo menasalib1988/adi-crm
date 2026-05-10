@@ -1149,29 +1149,13 @@ function openOutlook(){
     } catch(e) { body = ""; }
   }
 
-  // Note: the email address (to) must NOT be encoded — only the query param values get encoded
+  // mailto: opens Outlook if it is your default mail app (Mac/Windows/iOS)
+  // To address must NOT be encoded, only query param values
   const mailtoUrl = "mailto:" + to
     + "?subject=" + encodeURIComponent(subject)
     + (body ? "&body=" + encodeURIComponent(body) : "");
 
-  // Try ms-outlook:// (opens Outlook app on Mac/Windows/iOS/Android)
-  // Fall back to mailto: after 600ms if Outlook isn't installed
-  const msUrl = "ms-outlook://compose?to=" + to
-    + "&subject=" + encodeURIComponent(subject)
-    + (body ? "&body=" + encodeURIComponent(body) : "");
-
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  document.body.appendChild(iframe);
-  try { iframe.src = msUrl; } catch(e) {}
-
-  setTimeout(() => {
-    try { document.body.removeChild(iframe); } catch(e) {}
-    if (!document.hidden) {
-      window.location.href = mailtoUrl;
-    }
-  }, 600);
-
+  window.open(mailtoUrl, "_self");
   markEmailed();
 }
 
