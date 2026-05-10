@@ -160,6 +160,79 @@ tr:hover td{background:var(--surface)}
 .tpage-btn.curr{background:var(--accent);border-color:var(--accent);color:#fff}
 .unread-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
 
+/* ── CALENDAR ── */
+.cal-panel{display:none;background:#0a1a12;border-bottom:2px solid #34d399;max-height:480px;overflow-y:auto}
+.cal-panel-header{padding:12px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0d2a1a;position:sticky;top:0;background:#0a1a12;z-index:2}
+.cal-event-card{border:1px solid #0d2a1a;border-radius:8px;margin-bottom:8px;padding:12px 14px;background:#0d2010}
+.cal-event-card.mismatch{border-color:#f59e0b;background:#1a1400}
+.cal-event-card.ok{border-color:#34d399}
+.cal-event-title{font-size:13px;font-weight:600;color:#e8eaf0}
+.cal-event-meta{font-size:11px;color:#6b9e80;margin-top:3px}
+.cal-event-notes{font-size:11px;color:#a0c8b0;margin-top:6px;white-space:pre-wrap;font-style:italic;border-left:2px solid #34d399;padding-left:8px}
+.cal-badge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:600}
+.cal-badge.match{background:#064e35;color:#34d399}
+.cal-badge.warn{background:#3d2a00;color:#f59e0b}
+.cal-badge.future{background:#0d2a4a;color:#38bdf8}
+.cal-school-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #0d2a1a}
+.cal-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+.cal-modal-overlay.open{display:flex}
+.cal-modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:760px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.cal-modal-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cal-modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+.cal-timeline{list-style:none;padding:0;margin:0;position:relative}
+.cal-timeline::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:2px;background:var(--border2)}
+.cal-tl-item{display:flex;gap:12px;margin-bottom:16px;position:relative}
+.cal-tl-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:3px;z-index:1;border:2px solid var(--bg)}
+.cal-tl-dot.past{background:#34d399}
+.cal-tl-dot.future{background:#38bdf8}
+.cal-tl-dot.warn{background:#f59e0b}
+.cal-tl-content{flex:1;min-width:0}
+
+/* ── NEXT OUTREACH DAY PANEL ── */
+.outreach-panel{display:none;background:linear-gradient(135deg,#060d1a 0%,#0a1225 100%);border-bottom:2px solid #a78bfa;max-height:92vh;overflow-y:auto}
+.outreach-panel.open{display:block}
+.outreach-panel-header{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1a1f3a;position:sticky;top:0;background:linear-gradient(135deg,#060d1a,#0a1225);z-index:2;flex-wrap:wrap;gap:10px}
+.outreach-panel-header h2{margin:0;font-size:14px;font-weight:700;color:#a78bfa}
+.outreach-stats-row{display:flex;gap:12px;padding:14px 24px;border-bottom:1px solid #1a1f3a;flex-wrap:wrap}
+.outreach-stat{background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:8px 14px;text-align:center;min-width:80px}
+.outreach-stat .val{font-size:20px;font-weight:700;color:#a78bfa;font-family:'DM Mono',monospace}
+.outreach-stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.outreach-school-list{padding:14px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px}
+.outreach-card{background:#0d1020;border:1px solid #1a1f3a;border-radius:12px;overflow:hidden;transition:border-color .15s}
+.outreach-card:hover{border-color:#a78bfa}
+.outreach-card-header{padding:12px 14px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid #1a1f3a}
+.outreach-rank{width:28px;height:28px;border-radius:50%;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#a78bfa;flex-shrink:0;font-family:'DM Mono',monospace}
+.outreach-rank.gold{background:rgba(245,166,35,0.15);border-color:rgba(245,166,35,0.4);color:#f5a623}
+.outreach-rank.silver{background:rgba(190,190,190,0.12);border-color:rgba(190,190,190,0.3);color:#c0c8e0}
+.outreach-rank.bronze{background:rgba(180,100,50,0.15);border-color:rgba(180,100,50,0.3);color:#cd7f32}
+.outreach-school-info{flex:1;min-width:0}
+.outreach-school-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.outreach-school-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.outreach-score-bar{width:48px;text-align:right;flex-shrink:0}
+.outreach-score{font-size:18px;font-weight:700;color:#a78bfa;font-family:'DM Mono',monospace;line-height:1}
+.outreach-score-lbl{font-size:9px;color:var(--muted);text-transform:uppercase}
+.outreach-card-body{padding:10px 14px}
+.outreach-why{font-size:11px;color:#6b7294;font-style:italic;margin-bottom:8px;padding-left:8px;border-left:2px solid rgba(167,139,250,0.3)}
+.outreach-ai-area{background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.12);border-radius:8px;padding:10px 12px;margin-bottom:8px;min-height:48px;font-size:12px;color:#b0bdd8;line-height:1.6}
+.outreach-ai-loading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}
+.outreach-ai-spinner{width:14px;height:14px;border:2px solid #1a1f3a;border-top-color:#a78bfa;border-radius:50%;animation:tspin .7s linear infinite;flex-shrink:0}
+.outreach-card-actions{display:flex;gap:6px;padding:10px 14px;border-top:1px solid #1a1f3a;flex-wrap:wrap}
+.outreach-btn{border:1px solid;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.outreach-btn.email{background:rgba(79,124,255,0.1);border-color:rgba(79,124,255,0.3);color:var(--accent)}
+.outreach-btn.email:hover{background:rgba(79,124,255,0.2)}
+.outreach-btn.research{background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa}
+.outreach-btn.research:hover{background:rgba(167,139,250,0.2)}
+.outreach-btn.done{background:rgba(45,212,160,0.1);border-color:rgba(45,212,160,0.3);color:var(--green)}
+.outreach-btn.skip{background:rgba(255,92,106,0.08);border-color:rgba(255,92,106,0.2);color:var(--red)}
+.outreach-filter-row{padding:12px 24px;border-bottom:1px solid #1a1f3a;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.outreach-chip{padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);font-size:11px;cursor:pointer;font-weight:500;color:var(--muted);transition:.15s;font-family:'DM Sans',sans-serif}
+.outreach-chip.active{border-color:#a78bfa;background:rgba(167,139,250,0.12);color:#a78bfa}
+.outreach-session-bar{padding:12px 24px;border-bottom:1px solid #1a1f3a;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.outreach-session-stat{font-size:12px;color:var(--muted)}
+.outreach-session-stat strong{color:var(--text)}
+.outreach-session-progress{flex:1;min-width:120px;height:6px;background:#1a1f3a;border-radius:3px;overflow:hidden}
+.outreach-session-fill{height:100%;background:linear-gradient(90deg,#a78bfa,#7c3aed);border-radius:3px;transition:width .3s}
+.outreach-empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -201,10 +274,52 @@ tr:hover td{background:var(--surface)}
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
+  <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
+  <button onclick="toggleOutreachDay()" style="background:linear-gradient(135deg,#2d1b5e,#1a1040);color:#a78bfa;border:1px solid rgba(167,139,250,0.4);font-weight:700" class="outbar-btn" id="outreachDayBtn">🚀 Next Outreach Day <span id="outreachCount" style="background:#a78bfa;color:#060d1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
 </div>
 <!-- ACTIVITY PANEL -->
 <div id="activityPanel" style="display:none;background:var(--surface);border-bottom:1px solid var(--border);max-height:480px;overflow-y:auto"></div>
+
+<!-- NEXT OUTREACH DAY PANEL -->
+<div id="outreachPanel" class="outreach-panel">
+  <div class="outreach-panel-header">
+    <div>
+      <h2>🚀 Next Outreach Day — Your Top Schools to Contact Right Now</h2>
+      <div style="font-size:11px;color:#6b5599;margin-top:2px">Ranked by likelihood to convert · Cluster-aware · AI-researched on demand</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn ghost" style="font-size:11px;padding:5px 12px;color:#a78bfa;border-color:#a78bfa" onclick="refreshOutreachList()">🔄 Refresh List</button>
+      <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="toggleOutreachDay()">✕</button>
+    </div>
+  </div>
+  <div class="outreach-session-bar">
+    <div class="outreach-session-stat">Today: <strong id="sessionEmailed">0</strong> emailed</div>
+    <div class="outreach-session-stat">Est. bookings from today: <strong id="sessionEstBookings">0</strong></div>
+    <div class="outreach-session-stat">At 10% rate: <strong id="sessionEstRevenue">$0</strong> potential</div>
+    <div class="outreach-session-progress"><div class="outreach-session-fill" id="sessionFill" style="width:0%"></div></div>
+    <div style="font-size:11px;color:var(--muted)" id="sessionTarget">Target: 50 emails</div>
+  </div>
+  <div class="outreach-stats-row" id="outreachStats"></div>
+  <div class="outreach-filter-row">
+    <span style="font-size:11px;color:var(--muted)">Filter:</span>
+    <div class="outreach-chip active" onclick="setOutreachFilter('all',this)">All</div>
+    <div class="outreach-chip" onclick="setOutreachFilter('Primary',this)">Primary</div>
+    <div class="outreach-chip" onclick="setOutreachFilter('Secondary',this)">Secondary</div>
+    <div class="outreach-chip" onclick="setOutreachFilter('Non-Gov',this)">Non-Gov first</div>
+    <div class="outreach-chip" onclick="setOutreachFilter('clusters',this)">Near visited</div>
+    <div class="outreach-chip" onclick="setOutreachFilter('has_email',this)">Has email</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <span style="font-size:11px;color:var(--muted)">Show:</span>
+      <select id="outreachLimit" onchange="renderOutreachList()" style="font-size:11px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;outline:none">
+        <option value="25">Top 25</option>
+        <option value="50" selected>Top 50</option>
+        <option value="100">Top 100</option>
+      </select>
+    </div>
+  </div>
+  <div id="outreachList" class="outreach-school-list"></div>
+</div>
 
 <!-- GONE COLD PANEL -->
 <div id="goneColdPanel" style="display:none;background:#0d1a0a;border-bottom:2px solid #f59e0b;max-height:400px;overflow-y:auto">
@@ -216,6 +331,23 @@ tr:hover td{background:var(--surface)}
     <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="toggleGoneCold()">✕</button>
   </div>
   <div id="goneColdList" style="padding:12px 24px"></div>
+</div>
+
+<!-- CALENDAR GLOBAL PANEL -->
+<div class="cal-panel" id="calendarPanel">
+  <div class="cal-panel-header">
+    <div>
+      <span style="font-size:13px;font-weight:700;color:#34d399">📅 Calendar Sync — Booking vs Email Cross-Reference</span>
+      <div style="font-size:11px;color:#4a8a68;margin-top:2px">Matching calendar events to schools · flagging mismatches · pulling in notes</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn ghost" style="font-size:11px;padding:5px 12px;color:#34d399;border-color:#34d399" onclick="runCalendarSync()">🔄 Sync Calendar</button>
+      <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="toggleCalendarPanel()">✕</button>
+    </div>
+  </div>
+  <div id="calendarPanelBody" style="padding:16px 24px">
+    <div style="text-align:center;padding:40px;color:#4a8a68;font-size:13px">Click "Sync Calendar" to scan your calendars and match events to schools.</div>
+  </div>
 </div>
 
 <div class="toolbar">
@@ -476,6 +608,7 @@ function render(){
           <button class="action-btn" onclick="openModal(${r.id})">Edit</button>
           <button class="action-btn email-btn" onclick="openEmailModal(${r.id})">✉ Email</button>
           <button class="action-btn" onclick="openThreadViewer(${r.id})" style="border-color:var(--teal-dim);color:var(--teal)">📬 Threads</button>
+          <button class="action-btn" onclick="openCalSchoolModal(${r.id})" style="border-color:#064e35;color:#34d399">📅 Calendar</button>
         </td>
       </tr>
     `).join("");
@@ -676,7 +809,7 @@ document.getElementById("emailModalOverlay").addEventListener("click",function(e
 
 // ── OUTLOOK SYNC v2 (school-name matching) ───────────────
 const _CID   = "8853036e-a831-4241-99f4-701982864e64";
-const _SCOPE = "https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read openid profile offline_access";
+const _SCOPE = "https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read https://graph.microsoft.com/Calendars.Read https://graph.microsoft.com/Calendars.ReadWrite openid profile offline_access";
 const _REDIR = window.location.origin + window.location.pathname;
 
 // ── Dual-account token store
@@ -732,9 +865,9 @@ function _checkRedirect(){
     _accounts[acct].exp   = Date.now() + (parseInt(exp)||3600)*1000;
     _accounts[acct].email = email;
     try{
-      sessionStorage.setItem('adi_token_'+acct, token);
-      sessionStorage.setItem('adi_exp_'+acct,   _accounts[acct].exp);
-      sessionStorage.setItem('adi_email_'+acct,  email);
+      localStorage.setItem('adi_token_'+acct, token);
+      localStorage.setItem('adi_exp_'+acct,   _accounts[acct].exp);
+      localStorage.setItem('adi_email_'+acct,  email);
     }catch(e){}
     history.replaceState(null,'', window.location.pathname);
     _setUI(acct, true, email);
@@ -751,9 +884,9 @@ function _checkRedirect(){
 function _restoreToken(){
   [1,2].forEach(acct=>{
     try{
-      const t = sessionStorage.getItem('adi_token_'+acct);
-      const e = parseInt(sessionStorage.getItem('adi_exp_'+acct)||'0');
-      const a = sessionStorage.getItem('adi_email_'+acct)||'';
+      const t = localStorage.getItem('adi_token_'+acct);
+      const e = parseInt(localStorage.getItem('adi_exp_'+acct)||'0');
+      const a = localStorage.getItem('adi_email_'+acct)||'';
       if(t && Date.now() < e){
         _accounts[acct].token = t;
         _accounts[acct].exp   = e;
@@ -799,9 +932,9 @@ function doSignOut(acct){
   if(!acct){ doSignOut(1); doSignOut(2); return; }
   _accounts[acct].token = null; _accounts[acct].exp = 0; _accounts[acct].email = '';
   try{
-    sessionStorage.removeItem('adi_token_'+acct);
-    sessionStorage.removeItem('adi_exp_'+acct);
-    sessionStorage.removeItem('adi_email_'+acct);
+    localStorage.removeItem('adi_token_'+acct);
+    localStorage.removeItem('adi_exp_'+acct);
+    localStorage.removeItem('adi_email_'+acct);
   }catch(e){}
   _setUI(acct, false);
   _updateLegacyToken();
@@ -863,6 +996,11 @@ async function doSync(){
               school.lastEmailSubject = msg.subject;
               school.lastContact      = dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
             }
+            // Store conversationId for reliable thread loading
+            if(msg.conversationId){
+              if(!school.conversationIds) school.conversationIds={};
+              school.conversationIds[msg.conversationId] = acctNum;
+            }
             if(!school.callLog) school.callLog=[];
             const already = school.callLog.find(e=>e.emailMsgId===msg.id);
             if(!already){
@@ -906,6 +1044,11 @@ async function doSync(){
               school.lastReplyPreview = (msg.bodyPreview||"").substring(0,200);
               school.lastReplySender  = msg.from?.emailAddress?.address||"";
               school.lastReplyAcct    = acctNum;
+            }
+            // Store conversationId for reliable thread loading
+            if(msg.conversationId){
+              if(!school.conversationIds) school.conversationIds={};
+              school.conversationIds[msg.conversationId] = acctNum;
             }
             if(!school.callLog) school.callLog=[];
             const already = school.callLog.find(e=>e.emailMsgId===msg.id);
@@ -1113,12 +1256,23 @@ window.addEventListener('load',function(){
   _restoreToken();
   setTimeout(updateActivityPanel, 500);
   setTimeout(updateGoneColdPanel, 500);
+  // Auto-sync if already connected
+  setTimeout(()=>{
+    const anyConnected = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
+    if(anyConnected){ _msg("Auto-syncing…","#38bdf8"); doSync(); }
+  }, 1200);
+  // Re-sync every 30 minutes while page is open
+  setInterval(()=>{
+    const anyConnected = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
+    if(anyConnected) doSync();
+  }, 30 * 60 * 1000);
 });
 // ── END OUTLOOK SYNC ──────────────────────────────────────
 
 
 hydrate();
 render();
+scoreAllSchools(); // populate outreach badge on load
 
 // ── EMAIL THREAD VIEWER ──────────────────────────────────
 let _threadSchoolIdx = null;
@@ -1159,56 +1313,68 @@ async function loadThreads() {
   const acct1 = _accounts[1].token && Date.now() < _accounts[1].exp;
   const acct2 = _accounts[2].token && Date.now() < _accounts[2].exp;
   if (!acct1 && !acct2) { _showThreadError('Connect at least one Outlook account first.'); return; }
+
   const r = allData.find(x => x.id === _threadSchoolIdx);
   const email = (r?.email || '').trim();
   const schoolName = (r?.school || '').trim();
-
-  // Meaningful part of school name (strip generic words)
-  const nameKey = schoolName
-    .replace(/\s*(public|primary|high|school|college|catholic|christian|anglican|grammar|community|infants|special|combined)\s*/gi,' ')
-    .replace(/\s+/g,' ').trim()
-    .split(' ').slice(0,3).join(' ');
+  const storedConvIds = r?.conversationIds || {};
 
   try {
     const allMsgs = [];
-    for (const [acctNum, acctData] of [[1, _accounts[1]], [2, _accounts[2]]]) {
-      if (!acctData.token || Date.now() >= acctData.exp) continue;
-      const headers = { Authorization: 'Bearer ' + acctData.token };
 
-      // Search all mail (inbox + sent + all folders) using /me/messages
-      // Run up to 3 searches: by email from, email to, and school name keyword
-      const searches = [];
-      if (email) {
-        searches.push(`from:${email}`);
-        searches.push(`to:${email}`);
-      }
-      if (nameKey && nameKey.length > 3) {
-        searches.push(nameKey);
-      }
-
-      for (const q of searches) {
-        // Search across ALL mail folders
-        const url = `https://graph.microsoft.com/v1.0/me/messages?$search=${encodeURIComponent('"' + q + '"')}&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`;
+    // ── METHOD 1: Load by stored conversationIds (most accurate) ──
+    if(Object.keys(storedConvIds).length > 0){
+      for(const [convId, acctNum] of Object.entries(storedConvIds)){
+        const acctData = _accounts[acctNum];
+        if(!acctData?.token || Date.now() >= acctData.exp) continue;
+        const headers = { Authorization: 'Bearer ' + acctData.token };
+        const url = `https://graph.microsoft.com/v1.0/me/messages?$filter=conversationId eq '${convId}'&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`;
         const resp = await fetch(url, { headers });
-        if (resp.ok) {
+        if(resp.ok){
           const d = await resp.json();
-          (d.value || []).forEach(m => { m._acct = acctNum; allMsgs.push(m); });
-        } else {
-          // If quoted search fails, try unquoted
-          const url2 = `https://graph.microsoft.com/v1.0/me/messages?$search=${encodeURIComponent(q)}&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`;
-          const resp2 = await fetch(url2, { headers });
-          if (resp2.ok) {
-            const d = await resp2.json();
-            (d.value || []).forEach(m => { m._acct = acctNum; allMsgs.push(m); });
-          }
+          (d.value||[]).forEach(m=>{ m._acct=acctNum; allMsgs.push(m); });
         }
       }
     }
+
+    // ── METHOD 2: Search by email address across all folders ──
+    for(const [acctNum, acctData] of [[1,_accounts[1]],[2,_accounts[2]]]){
+      if(!acctData.token || Date.now() >= acctData.exp) continue;
+      const headers = { Authorization: 'Bearer ' + acctData.token };
+      if(email){
+        for(const q of [`from:${email}`, `to:${email}`]){
+          const url = `https://graph.microsoft.com/v1.0/me/messages?$search=${encodeURIComponent('"'+q+'"')}&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`;
+          const resp = await fetch(url, { headers });
+          if(resp.ok){ const d=await resp.json(); (d.value||[]).forEach(m=>{ m._acct=acctNum; allMsgs.push(m); }); }
+        }
+      }
+      // ── METHOD 3: School name keyword search as final fallback ──
+      if(schoolName){
+        const nameKey = schoolName
+          .replace(/\s*(public|primary|high|school|college|catholic|christian|anglican|grammar|community|infants|special|combined)\s*/gi,' ')
+          .replace(/\s+/g,' ').trim().split(' ').slice(0,3).join(' ');
+        if(nameKey.length > 3){
+          const url = `https://graph.microsoft.com/v1.0/me/messages?$search=${encodeURIComponent(nameKey)}&$top=50&$select=id,subject,from,toRecipients,receivedDateTime,isRead,conversationId,body,bodyPreview`;
+          const resp = await fetch(url, { headers });
+          if(resp.ok){ const d=await resp.json(); (d.value||[]).forEach(m=>{ m._acct=acctNum; allMsgs.push(m); }); }
+        }
+      }
+    }
+
+    // Deduplicate by message id
     const seen = new Set();
-    const unique = allMsgs.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
+    const unique = allMsgs.filter(m => { if(seen.has(m.id)) return false; seen.add(m.id); return true; });
+
+    // Store any new conversationIds we found back onto the school record
+    if(r){
+      let changed = false;
+      unique.forEach(m=>{ if(m.conversationId && !storedConvIds[m.conversationId]){ if(!r.conversationIds) r.conversationIds={}; r.conversationIds[m.conversationId]=m._acct; changed=true; } });
+      if(changed) saveOverride(r);
+    }
+
     _allThreads = _groupThreads(unique);
     renderThreadList();
-  } catch (e) {
+  } catch(e) {
     _showThreadError('Error: ' + e.message);
   }
 }
@@ -1373,8 +1539,602 @@ function _fmtDateTime(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-// ── END EMAIL THREAD VIEWER ──────────────────────────────
+// ── CALENDAR SYNC ────────────────────────────────────────
+let _allCalEvents = []; // cache of all fetched events
+
+function toggleCalendarPanel(){
+  const p = document.getElementById('calendarPanel');
+  if(!p) return;
+  if(p.style.display === 'none' || !p.style.display){
+    p.style.display = 'block';
+    if(!_allCalEvents.length) runCalendarSync();
+  } else {
+    p.style.display = 'none';
+  }
+}
+
+async function runCalendarSync(){
+  const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
+  if(!connectedAccounts.length){
+    document.getElementById('calendarPanelBody').innerHTML = '<div style="text-align:center;padding:30px;color:#f59e0b">Connect an Outlook account first.</div>';
+    return;
+  }
+  document.getElementById('calendarPanelBody').innerHTML = '<div style="text-align:center;padding:30px;color:#4a8a68"><div class="thread-spinner" style="border-top-color:#34d399"></div><p style="margin-top:10px;font-size:12px">Fetching calendar events…</p></div>';
+
+  _allCalEvents = [];
+  const now = new Date();
+
+  try{
+    for(const acctNum of connectedAccounts){
+      const acctLabel = acctNum===2 ? 'Planetariums' : 'ADI';
+      // Fetch events from 2 years ago to 2 years ahead
+      const start = new Date(now); start.setFullYear(start.getFullYear()-2);
+      const end   = new Date(now); end.setFullYear(end.getFullYear()+2);
+      const url = `/me/calendarView?startDateTime=${start.toISOString()}&endDateTime=${end.toISOString()}&$top=500&$select=id,subject,start,end,bodyPreview,body,location,attendees,organizer,categories&$orderby=start/dateTime asc`;
+      let nextUrl = url;
+      let pageCount = 0;
+      while(nextUrl && pageCount < 10){
+        const d = await _gfAcct(acctNum, nextUrl);
+        (d.value||[]).forEach(ev=>{ ev._acct = acctNum; ev._acctLabel = acctLabel; _allCalEvents.push(ev); });
+        nextUrl = d['@odata.nextLink'] || null;
+        pageCount++;
+      }
+    }
+
+    // Match events to schools
+    _matchCalendarToSchools();
+    renderCalendarPanel();
+  } catch(e){
+    document.getElementById('calendarPanelBody').innerHTML = `<div style="padding:20px;color:#f59e0b">Error fetching calendar: ${e.message}</div>`;
+  }
+}
+
+function _matchCalendarToSchools(){
+  const idx = buildSchoolIndex();
+  _allCalEvents.forEach(ev=>{
+    ev._matchedSchoolId = null;
+    ev._matchedSchoolName = null;
+    const text = ((ev.subject||'') + ' ' + (ev.bodyPreview||'') + ' ' + (ev.location?.displayName||'')).toLowerCase();
+    // Try matching by school name keywords
+    let bestMatch = null, bestScore = 0;
+    allData.forEach(r=>{
+      const name = (r.school||'').toLowerCase();
+      const words = name.replace(/\s*(public|primary|high|school|college|catholic|christian|anglican|grammar|community|infants|special|combined)\s*/gi,' ').trim().split(/\s+/).filter(w=>w.length>3);
+      let score = 0;
+      words.forEach(w=>{ if(text.includes(w)) score++; });
+      if(score > bestScore || (score === bestScore && score > 0 && name.length > (bestMatch?.school||'').length)){
+        bestScore = score; bestMatch = r;
+      }
+      // Also try direct email match in attendees
+      if(r.email){
+        const em = r.email.toLowerCase();
+        const attendeeEmails = (ev.attendees||[]).map(a=>a.emailAddress?.address?.toLowerCase()||'');
+        if(attendeeEmails.includes(em)){ bestScore = 99; bestMatch = r; }
+      }
+    });
+    if(bestScore >= 2 || bestScore === 99){
+      ev._matchedSchoolId   = bestMatch.id;
+      ev._matchedSchoolName = bestMatch.school;
+    }
+
+    // Auto-update school fields from event
+    if(bestMatch && bestScore >= 2){
+      const evDate = new Date(ev.start?.dateTime || ev.start?.date);
+      const isPast = evDate < new Date();
+      // Pull notes from event body into school profile
+      const notes = (ev.bodyPreview||'').trim();
+      if(notes && isPast){
+        if(!bestMatch.calendarNotes) bestMatch.calendarNotes = [];
+        const already = bestMatch.calendarNotes.find(n=>n.evId===ev.id);
+        if(!already){
+          bestMatch.calendarNotes.push({ evId:ev.id, date:evDate.toLocaleDateString('en-AU'), notes, subject:ev.subject });
+          saveOverride(bestMatch);
+        }
+      }
+      // Auto-mark visited if past event
+      if(isPast && bestMatch.status !== 'visited'){
+        bestMatch.status = 'visited';
+        saveOverride(bestMatch);
+      }
+    }
+  });
+
+  // Update mismatch badge
+  const mismatches = _allCalEvents.filter(ev=>{
+    const isPast = new Date(ev.start?.dateTime||ev.start?.date) < new Date();
+    return isPast && !ev._matchedSchoolId;
+  }).length;
+  const badge = document.getElementById('calMismatchCount');
+  if(badge) badge.textContent = mismatches;
+}
+
+function renderCalendarPanel(){
+  const body = document.getElementById('calendarPanelBody');
+  const now = new Date();
+  const matched   = _allCalEvents.filter(e=>e._matchedSchoolId);
+  const unmatched = _allCalEvents.filter(e=>!e._matchedSchoolId);
+  const upcoming  = matched.filter(e=>new Date(e.start?.dateTime||e.start?.date) >= now);
+  const past      = matched.filter(e=>new Date(e.start?.dateTime||e.start?.date) < now);
+
+  let html = `
+    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="background:#0d2a1a;border-radius:8px;padding:10px 16px;text-align:center;min-width:100px">
+        <div style="font-size:22px;font-weight:700;color:#34d399">${_allCalEvents.length}</div>
+        <div style="font-size:11px;color:#4a8a68">Total Events</div>
+      </div>
+      <div style="background:#0d2a1a;border-radius:8px;padding:10px 16px;text-align:center;min-width:100px">
+        <div style="font-size:22px;font-weight:700;color:#34d399">${matched.length}</div>
+        <div style="font-size:11px;color:#4a8a68">Matched to Schools</div>
+      </div>
+      <div style="background:#0d2010;border-radius:8px;padding:10px 16px;text-align:center;min-width:100px">
+        <div style="font-size:22px;font-weight:700;color:#38bdf8">${upcoming.length}</div>
+        <div style="font-size:11px;color:#4a8a68">Upcoming</div>
+      </div>
+      <div style="background:#1a1400;border-radius:8px;padding:10px 16px;text-align:center;min-width:100px">
+        <div style="font-size:22px;font-weight:700;color:#f59e0b">${unmatched.length}</div>
+        <div style="font-size:11px;color:#4a8a68">⚠️ Unmatched</div>
+      </div>
+    </div>`;
+
+  // Upcoming events
+  if(upcoming.length){
+    html += `<div style="font-size:12px;font-weight:700;color:#38bdf8;margin-bottom:8px;margin-top:4px">🔵 UPCOMING BOOKINGS (${upcoming.length})</div>`;
+    upcoming.slice(0,20).forEach(ev=>{
+      const d = new Date(ev.start?.dateTime||ev.start?.date);
+      const daysAway = Math.ceil((d-now)/864e5);
+      html += `<div class="cal-event-card ok" style="border-color:#0d2a4a">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="cal-badge future">In ${daysAway}d</span>
+          <span class="cal-event-title">${_esc(ev.subject||'(no title)')}</span>
+          <span style="margin-left:auto;font-size:10px;color:#4a8a68">${ev._acctLabel}</span>
+        </div>
+        <div class="cal-event-meta">📅 ${d.toLocaleString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} · 🏫 <strong>${_esc(ev._matchedSchoolName||'')}</strong>${ev.location?.displayName?' · 📍'+_esc(ev.location.displayName):''}</div>
+        ${ev.bodyPreview?`<div class="cal-event-notes">${_esc(ev.bodyPreview.substring(0,200))}</div>`:''}
+        <div style="margin-top:6px"><button class="action-btn" onclick="openCalSchoolModal(${ev._matchedSchoolId})" style="font-size:10px;border-color:#064e35;color:#34d399">View School</button></div>
+      </div>`;
+    });
+  }
+
+  // Unmatched events warning
+  if(unmatched.length){
+    html += `<div style="font-size:12px;font-weight:700;color:#f59e0b;margin:16px 0 8px">⚠️ UNMATCHED EVENTS — Could Not Link to a School (${unmatched.length})</div>`;
+    html += `<div style="font-size:11px;color:#a07020;margin-bottom:8px">These calendar events couldn't be matched to any school in your CRM. Check if the school name is correct.</div>`;
+    unmatched.slice(0,15).forEach(ev=>{
+      const d = new Date(ev.start?.dateTime||ev.start?.date);
+      const isPast = d < now;
+      html += `<div class="cal-event-card mismatch">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="cal-badge warn">${isPast?'Past':'Upcoming'}</span>
+          <span class="cal-event-title">${_esc(ev.subject||'(no title)')}</span>
+          <span style="margin-left:auto;font-size:10px;color:#a07020">${ev._acctLabel}</span>
+        </div>
+        <div class="cal-event-meta">📅 ${d.toLocaleString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
+        ${ev.bodyPreview?`<div class="cal-event-notes">${_esc(ev.bodyPreview.substring(0,150))}</div>`:''}
+      </div>`;
+    });
+  }
+
+  body.innerHTML = html;
+  render(); // re-render table to show updated visited statuses
+}
+
+// ── PER-SCHOOL CALENDAR MODAL ──────────────────────────
+let _calSchoolId = null;
+
+function openCalSchoolModal(id){
+  _calSchoolId = id;
+  const r = allData.find(x=>x.id===id);
+  document.getElementById('calSchoolLabel').textContent = (r?.school||'') + (r?.email?' · '+r.email:'');
+  document.getElementById('calSchoolMismatchAlert').style.display = 'none';
+  document.getElementById('calSchoolModal').classList.add('open');
+
+  if(!_allCalEvents.length){
+    // Need to fetch first
+    document.getElementById('calSchoolTimeline').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)"><div class="thread-spinner"></div><p style="margin-top:8px;font-size:12px">Fetching calendar…</p></div>';
+    runCalendarSync().then(()=>renderCalSchoolTimeline(id));
+  } else {
+    renderCalSchoolTimeline(id);
+  }
+}
+
+function closeCalSchoolModal(){
+  document.getElementById('calSchoolModal').classList.remove('open');
+}
+document.getElementById('calSchoolModal').addEventListener('click', function(e){ if(e.target===this) closeCalSchoolModal(); });
+
+function renderCalSchoolTimeline(id){
+  const r = allData.find(x=>x.id===id);
+  const schoolEvents = _allCalEvents.filter(ev=>ev._matchedSchoolId===id);
+  const now = new Date();
+
+  // Also check for email-based bookings with no calendar match
+  const hasEmailContact = r?.lastEmailSent || r?.lastReplyDate;
+  const hasCalEvent = schoolEvents.length > 0;
+
+  const alertEl = document.getElementById('calSchoolMismatchAlert');
+  if(hasEmailContact && !hasCalEvent){
+    alertEl.style.display = 'block';
+    alertEl.textContent = '⚠️ Email contact found but NO calendar events matched — check if a booking was made without being added to the calendar.';
+  } else if(!hasEmailContact && hasCalEvent){
+    alertEl.style.display = 'block';
+    alertEl.textContent = '⚠️ Calendar event found but NO email history — booking may have been made by phone or in person.';
+  }
+
+  if(!schoolEvents.length){
+    document.getElementById('calSchoolTimeline').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">📭 No calendar events found for this school.<br><span style="font-size:11px">Try running Calendar Sync first, or check the school name matches your calendar entries.</span></div>';
+    return;
+  }
+
+  // Sort by date
+  schoolEvents.sort((a,b)=>new Date(a.start?.dateTime||a.start?.date)-new Date(b.start?.dateTime||b.start?.date));
+
+  const items = schoolEvents.map(ev=>{
+    const d = new Date(ev.start?.dateTime||ev.start?.date);
+    const isPast = d < now;
+    const dotClass = isPast ? 'past' : 'future';
+    const endD = ev.end ? new Date(ev.end?.dateTime||ev.end?.date) : null;
+    const duration = endD ? Math.round((endD-d)/60000)+'min' : '';
+    const notes = (ev.body?.content||ev.bodyPreview||'').replace(/<[^>]+>/g,'').trim();
+
+    return `<li class="cal-tl-item">
+      <div class="cal-tl-dot ${dotClass}"></div>
+      <div class="cal-tl-content">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${_esc(ev.subject||'(no title)')}</span>
+          <span class="cal-badge ${isPast?'match':'future'}">${isPast?'Past':'Upcoming'}</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">${ev._acctLabel}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">
+          📅 ${d.toLocaleString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+          ${duration?' · ⏱ '+duration:''}
+          ${ev.location?.displayName?' · 📍'+_esc(ev.location.displayName):''}
+        </div>
+        ${notes?`<div style="font-size:11px;color:var(--muted);margin-top:6px;white-space:pre-wrap;border-left:2px solid ${isPast?'#34d399':'#38bdf8'};padding-left:8px;font-style:italic">${_esc(notes.substring(0,400))}</div>`:''}
+        ${ev.calendarNotes?.length?`<div style="font-size:10px;color:#34d399;margin-top:4px">✅ Notes saved to school profile</div>`:''}
+      </div>
+    </li>`;
+  }).join('');
+
+  document.getElementById('calSchoolTimeline').innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${schoolEvents.length} event${schoolEvents.length===1?'':'s'} found · ${schoolEvents.filter(e=>new Date(e.start?.dateTime||e.start?.date)<now).length} past · ${schoolEvents.filter(e=>new Date(e.start?.dateTime||e.start?.date)>=now).length} upcoming</div>
+    <ul class="cal-timeline">${items}</ul>`;
+}
+// ── NEXT OUTREACH DAY ────────────────────────────────────
+
+let _outreachFilter = 'all';
+let _sessionEmailed = 0;
+let _outreachScored = []; // cached scored list
+let _outreachSkipped = new Set(); // IDs skipped this session
+const TARGET_EMAILS = 50;
+
+// LGA clusters — schools near your visited areas get a big priority boost
+const VISITED_LGAS = [
+  'Sutherland Shire','Eastern Suburbs (Waverley/Randwick)','Eastern Suburbs (Woollahra)',
+  'Ryde / Parramatta North','Inner West / Strathfield','Inner West','Wollongong City',
+  'Parramatta City','Hills District','Canterbury-Bankstown','Georges River'
+];
+
+function scoreSchool(r) {
+  let score = 0;
+  const reasons = [];
+
+  // ── Exclude already booked / visited / not interested / replied
+  const skip = ['visited','booked','not_interested','replied'];
+  if (skip.includes(r.status)) return null;
+
+  // ── No email = penalise heavily but don't exclude
+  const hasEmail = !!(r.email && r.email.trim());
+  if (!hasEmail) { score -= 20; } else { score += 15; reasons.push('Has email'); }
+
+  // ── Status weighting
+  if (r.status === 'follow_up') { score += 40; reasons.push('Follow up flagged'); }
+  else if (r.status === 'replied') { score += 50; reasons.push('Previously replied'); }
+  else if (r.status === 'emailed') { score += 20; reasons.push('Previously emailed'); }
+  else if (r.status === 'contacted') { score += 10; reasons.push('Previously called'); }
+  else if (r.status === 'not_contacted') { score += 5; }
+
+  // ── School type — Primary converts best
+  if (r.schoolType === 'Primary') { score += 20; reasons.push('Primary school (best conversion)'); }
+  else if (r.schoolType === 'Combined') { score += 12; }
+  else if (r.schoolType === 'Secondary') { score += 8; }
+
+  // ── Sector — Non-Gov emails land better
+  if (r.sector === 'Non-Gov') { score += 15; reasons.push('Non-Government (email lands better)'); }
+  else { score += 8; }
+
+  // ── Cluster proximity — near visited areas
+  const inCluster = VISITED_LGAS.includes(r.lga);
+  if (inCluster) { score += 25; reasons.push('Near schools you\'ve already visited'); }
+
+  // ── Has contact name = personalisation opportunity
+  if (r.contact && r.contact.trim()) { score += 8; reasons.push('Contact name known (' + r.contact + ')'); }
+
+  // ── Has recipient set = even better
+  if (r.recipient && r.recipient.trim()) { score += 10; reasons.push('Recipient name set (' + r.recipient + ')'); }
+
+  // ── Notes suggest interest
+  if (r.notes) {
+    const n = r.notes.toLowerCase();
+    if (n.includes('interest') || n.includes('forward') || n.includes('pass') || n.includes('cool') || n.includes('great')) {
+      score += 20; reasons.push('Notes suggest interest');
+    }
+    if (n.includes('rude') || n.includes('not interest') || n.includes('never')) {
+      score -= 30;
+    }
+  }
+
+  // ── Phone available (can call too)
+  if (r.phone) { score += 3; }
+
+  // ── Skipped this session
+  if (_outreachSkipped.has(r.id)) return null;
+
+  return { school: r, score, reasons };
+}
+
+function scoreAllSchools() {
+  const scored = [];
+  allData.forEach(r => {
+    const result = scoreSchool(r);
+    if (result && result.score > -10) scored.push(result);
+  });
+  scored.sort((a, b) => b.score - a.score);
+  _outreachScored = scored;
+
+  // Update badge
+  const badge = document.getElementById('outreachCount');
+  if (badge) badge.textContent = scored.filter(s => s.school.email).length;
+
+  return scored;
+}
+
+function getOutreachFiltered() {
+  let list = _outreachScored.length ? _outreachScored : scoreAllSchools();
+
+  if (_outreachFilter === 'Primary') {
+    list = list.filter(s => s.school.schoolType === 'Primary');
+  } else if (_outreachFilter === 'Secondary') {
+    list = list.filter(s => s.school.schoolType === 'Secondary');
+  } else if (_outreachFilter === 'Non-Gov') {
+    list = [...list.filter(s => s.school.sector === 'Non-Gov'), ...list.filter(s => s.school.sector !== 'Non-Gov')];
+  } else if (_outreachFilter === 'clusters') {
+    list = list.filter(s => VISITED_LGAS.includes(s.school.lga));
+  } else if (_outreachFilter === 'has_email') {
+    list = list.filter(s => s.school.email);
+  }
+
+  return list;
+}
+
+function setOutreachFilter(f, el) {
+  _outreachFilter = f;
+  document.querySelectorAll('.outreach-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderOutreachList();
+}
+
+function renderOutreachStats() {
+  const list = _outreachScored;
+  const withEmail = list.filter(s => s.school.email).length;
+  const inClusters = list.filter(s => VISITED_LGAS.includes(s.school.lga)).length;
+  const followUp = list.filter(s => s.school.status === 'follow_up').length;
+  const nonGov = list.filter(s => s.school.sector === 'Non-Gov').length;
+
+  document.getElementById('outreachStats').innerHTML = `
+    <div class="outreach-stat"><div class="val">${list.length.toLocaleString()}</div><div class="lbl">In Queue</div></div>
+    <div class="outreach-stat"><div class="val" style="color:var(--green)">${withEmail.toLocaleString()}</div><div class="lbl">Have Email</div></div>
+    <div class="outreach-stat"><div class="val" style="color:var(--amber)">${followUp}</div><div class="lbl">Follow Up</div></div>
+    <div class="outreach-stat"><div class="val" style="color:var(--teal)">${inClusters.toLocaleString()}</div><div class="lbl">Near Visited</div></div>
+    <div class="outreach-stat"><div class="val" style="color:var(--purple)">${nonGov.toLocaleString()}</div><div class="lbl">Non-Gov</div></div>
+  `;
+}
+
+function updateSessionBar() {
+  const e = _sessionEmailed;
+  const est = Math.round(e * 0.10 * 10) / 10;
+  const rev = Math.round(est * 900);
+  document.getElementById('sessionEmailed').textContent = e;
+  document.getElementById('sessionEstBookings').textContent = est.toFixed(1);
+  document.getElementById('sessionEstRevenue').textContent = '$' + rev.toLocaleString();
+  const pct = Math.min(100, Math.round(e / TARGET_EMAILS * 100));
+  document.getElementById('sessionFill').style.width = pct + '%';
+  document.getElementById('sessionTarget').textContent = 'Target: ' + TARGET_EMAILS + ' emails (' + pct + '%)';
+}
+
+function renderOutreachList() {
+  const container = document.getElementById('outreachList');
+  const limit = parseInt(document.getElementById('outreachLimit').value) || 50;
+  const list = getOutreachFiltered().slice(0, limit);
+
+  if (!list.length) {
+    container.innerHTML = '<div class="outreach-empty">🎉 No schools left to contact in this filter!<br><span style="font-size:11px">Try a different filter or you\'ve done an amazing job clearing the queue.</span></div>';
+    return;
+  }
+
+  container.innerHTML = list.map((s, i) => {
+    const r = s.school;
+    const rank = i + 1;
+    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+    const topReason = s.reasons[0] || 'Good candidate';
+    const allReasons = s.reasons.slice(0, 3).join(' · ');
+    const hasEmail = !!(r.email && r.email.trim());
+
+    return `<div class="outreach-card" id="ocard_${r.id}">
+      <div class="outreach-card-header">
+        <div class="outreach-rank ${rankClass}">${rank}</div>
+        <div class="outreach-school-info">
+          <div class="outreach-school-name" title="${r.school}">${r.school}</div>
+          <div class="outreach-school-meta">
+            ${r.city || '?'} · ${r.lga || '?'} · ${r.schoolType || '?'} · ${r.sector || '?'}
+            ${r.contact ? ' · <span style="color:var(--green)">👤 ' + r.contact + '</span>' : ''}
+          </div>
+          ${hasEmail ? `<div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.email}</div>` : '<div style="font-size:10px;color:var(--red);margin-top:2px">⚠️ No email — call only</div>'}
+        </div>
+        <div class="outreach-score-bar">
+          <div class="outreach-score">${s.score}</div>
+          <div class="outreach-score-lbl">score</div>
+        </div>
+      </div>
+      <div class="outreach-card-body">
+        <div class="outreach-why">💡 ${allReasons || topReason}</div>
+        <div class="outreach-ai-area" id="ai_${r.id}">
+          <div style="font-size:11px;color:var(--muted);font-style:italic">Click "Research" to get AI school intelligence for a personalised email draft.</div>
+        </div>
+      </div>
+      <div class="outreach-card-actions">
+        ${hasEmail ? `<button class="outreach-btn email" onclick="outreachEmail(${r.id})">✉ Open Email</button>` : ''}
+        <button class="outreach-btn research" onclick="researchSchool(${r.id}, this)">🔍 Research</button>
+        <button class="outreach-btn done" onclick="markOutreachDone(${r.id})">✅ Done</button>
+        <button class="outreach-btn skip" onclick="skipOutreach(${r.id})">↓ Skip</button>
+        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  renderOutreachStats();
+  updateSessionBar();
+}
+
+function outreachEmail(id) {
+  openEmailModal(id);
+  _sessionEmailed++;
+  updateSessionBar();
+  // Update the card status indicator
+  const r = allData.find(x => x.id === id);
+  if (r && r.status === 'not_contacted') {
+    r.status = 'emailed';
+    saveOverride(r);
+    render();
+  }
+}
+
+function markOutreachDone(id) {
+  _sessionEmailed++;
+  const r = allData.find(x => x.id === id);
+  if (r && (r.status === 'not_contacted' || r.status === 'contacted')) {
+    r.status = 'emailed';
+    saveOverride(r);
+    render();
+  }
+  _outreachSkipped.add(id);
+  const card = document.getElementById('ocard_' + id);
+  if (card) {
+    card.style.opacity = '0.4';
+    card.style.pointerEvents = 'none';
+    setTimeout(() => { card.style.display = 'none'; }, 500);
+  }
+  updateSessionBar();
+}
+
+function skipOutreach(id) {
+  _outreachSkipped.add(id);
+  const card = document.getElementById('ocard_' + id);
+  if (card) {
+    card.style.opacity = '0.3';
+    setTimeout(() => { card.style.display = 'none'; }, 400);
+  }
+}
+
+async function researchSchool(id, btn) {
+  const r = allData.find(x => x.id === id);
+  if (!r) return;
+  const aiArea = document.getElementById('ai_' + id);
+  if (!aiArea) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Researching…';
+  aiArea.innerHTML = '<div class="outreach-ai-loading"><div class="outreach-ai-spinner"></div><span>AI is researching ' + r.school + '…</span></div>';
+
+  const prompt = `You are a sales intelligence assistant for Australian Digital Incursions (ADI), a mobile planetarium and VR school incursion company based in NSW.
+
+Research this school and provide a brief, actionable intelligence briefing:
+School: ${r.school}
+Suburb: ${r.city || 'NSW'}
+Type: ${r.schoolType} (${r.sector})
+Region: ${r.lga}
+${r.contact ? 'Known contact: ' + r.contact : ''}
+${r.notes ? 'Notes: ' + r.notes : ''}
+
+Please provide (in 3-4 sentences max, be specific and concise):
+1. Key fact about this school (size, programs, any STEM focus)
+2. Why they'd be a good fit for a planetarium/VR incursion
+3. One personalisation tip for the email (what to mention)
+4. Suggested email subject line
+
+Format: Start directly with the intelligence, no preamble.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+
+    if (text) {
+      aiArea.innerHTML = '<div style="white-space:pre-wrap">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+    } else {
+      aiArea.innerHTML = '<div style="color:var(--muted)">No research data found. Try emailing with a general template.</div>';
+    }
+  } catch (e) {
+    aiArea.innerHTML = '<div style="color:var(--amber)">Research unavailable offline. Use your email template and personalise manually.</div>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔍 Research again';
+}
+
+function refreshOutreachList() {
+  _outreachSkipped.clear();
+  _outreachScored = [];
+  scoreAllSchools();
+  renderOutreachList();
+}
+
+function toggleOutreachDay() {
+  const panel = document.getElementById('outreachPanel');
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    panel.classList.remove('open');
+  } else {
+    // Close other panels
+    document.getElementById('goneColdPanel').style.display = 'none';
+    document.getElementById('calendarPanel').style.display = 'none';
+    document.getElementById('activityPanel').style.display = 'none';
+    panel.classList.add('open');
+    if (!_outreachScored.length) scoreAllSchools();
+    renderOutreachList();
+  }
+}
+
+// ── END NEXT OUTREACH DAY ─────────────────────────────────
 </script>
+
+<!-- PER-SCHOOL CALENDAR MODAL -->
+<div class="cal-modal-overlay" id="calSchoolModal">
+  <div class="cal-modal">
+    <div class="cal-modal-header">
+      <div>
+        <h2 style="margin:0;font-size:15px">📅 Calendar Events</h2>
+        <div id="calSchoolLabel" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button class="btn ghost" style="padding:3px 10px;font-size:12px" onclick="closeCalSchoolModal()">✕</button>
+    </div>
+    <div class="cal-modal-body">
+      <div id="calSchoolMismatchAlert" style="display:none;background:var(--amber-dim);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber)"></div>
+      <div id="calSchoolTimeline"><div style="text-align:center;padding:30px;color:var(--muted)">Loading calendar events…</div></div>
+    </div>
+    <div style="padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn ghost" style="font-size:12px" onclick="closeCalSchoolModal()">Close</button>
+    </div>
+  </div>
+</div>
 
 <!-- EMAIL THREAD VIEWER MODAL -->
 <div class="thread-modal-overlay" id="threadModalOverlay">
