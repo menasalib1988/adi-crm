@@ -917,11 +917,13 @@ function loadRating(r) {
   }
 }
 
-async function fetchPhoneForCard(id, btn) {
+async function fetchPhoneForCard(id) {
   const r = allData.find(x => x.id === id);
-  if (!r) return;
+  if (!r) { alert('School not found for id: ' + id); return; }
   const key = getGeminiKey();
   if (!key) { alert('No API key found. Click the API Key button top right and enter your Gemini key.'); return; }
+  const btn = document.getElementById('fetchBtn_' + id);
+  if (!btn) { alert('Button not found'); return; }
   btn.textContent = '⏳ Fetching...';
   btn.disabled = true;
   try {
@@ -2495,7 +2497,7 @@ function renderOutreachList() {
         <button class="outreach-btn research" onclick="researchSchool(${r.id}, this)">🔍 Research</button>
         <button class="outreach-btn" onclick="calledAndEmailed(${r.id})" style="background:rgba(45,212,160,0.12);border-color:rgba(45,212,160,0.4);color:var(--green);font-weight:600">📞✉ Called & Emailed</button>
         <button class="outreach-btn skip" onclick="skipOutreach(${r.id})">↓ Skip</button>
-        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : `<button class="outreach-btn" id="fetchBtn_${r.id}" onclick="fetchPhoneForCard(${r.id}, this)" style="background:rgba(79,124,255,0.08);border-color:rgba(79,124,255,0.3);color:var(--accent);font-size:11px">📞 Fetch Number</button>`}
+        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : `<button class="outreach-btn" id="fetchBtn_${r.id}" onclick="fetchPhoneForCard(${r.id})" style="background:rgba(79,124,255,0.08);border-color:rgba(79,124,255,0.3);color:var(--accent);font-size:11px">📞 Fetch Number</button>`}
       </div>
     </div>`;
   }).join('');
