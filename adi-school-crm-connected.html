@@ -921,23 +921,24 @@ async function fetchPhoneForCard(id, btn) {
   const r = allData.find(x => x.id === id);
   if (!r) return;
   const key = getApiKey();
-  if (!key) { alert('Add your Gemini API key first (click API Key top right)'); return; }
+  if (!key) { alert('Add your Gemini API key first — click the API Key button top right'); return; }
   if (!btn) btn = document.getElementById('fetchBtn_' + id);
   if (btn) { btn.textContent = '⏳ Fetching...'; btn.disabled = true; }
   try {
-    const prompt = 'Phone number for ' + r.school + ' in ' + (r.city || r.lga || 'NSW') + ' Australia. Reply with just the number.';
+    const prompt = 'Phone number for ' + r.school + ' in ' + (r.city || r.lga || 'NSW') + ' Australia. Reply with just the number like (02) 9526 3000.';
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:30, temperature:0}})
     });
     const data = await res.json();
     if (data.error) {
-      if (btn) { btn.textContent = '❌ API error'; btn.disabled = false; }
+      alert('Gemini error: ' + data.error.message);
+      if (btn) { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }
       return;
     }
     const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    // Extract any Australian phone number pattern from the response
-    const match = text.match(/(\(0\d\)\s?\d{4}\s?\d{4}|0\d{9}|1[38]\d{2}\s?\d{3}\s?\d{3})/);
+    // Extract Australian phone number from whatever text comes back
+    const match = text.match(/(\(0\d\)\s*\d{4}\s*\d{4}|0\d{9}|1[38]\d{2}\s*\d{3}\s*\d{3}|\d{2}\s*\d{4}\s*\d{4})/);
     if (match) {
       r.phone = match[0].trim();
       saveOverride(r);
@@ -950,16 +951,15 @@ async function fetchPhoneForCard(id, btn) {
       }
     }
   } catch(e) {
-    if (btn) { btn.textContent = '❌ Error'; btn.disabled = false; }
+    alert('Fetch error: ' + e.message);
+    if (btn) { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }
   }
 }
 
-async function fetchPhoneNumber() {
-  // Legacy - now handled by fetchPhoneForCard
-}
+async function fetchPhoneNumber() { /* legacy */ }
 
 async function fetchMissingNumbers() {
-  const key = getGeminiKey();
+  const key = getApiKey();
   if (!key) { alert('Add your Gemini API key first'); return; }
   const btn = document.getElementById('fetchAllBtn');
   if (!btn) return;
