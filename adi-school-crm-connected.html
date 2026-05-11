@@ -462,16 +462,17 @@ tr:hover td{background:var(--surface)}
         <label>Forward To (who in the school)</label>
         <select id="mRecipientRole">
           <option value="">— Select who to forward to —</option>
-          <option value="your science and STEAM teachers">Your science and STEAM teachers</option>
-          <option value="your leadership team">Your leadership team</option>
-          <option value="your teaching staff">Your teaching staff</option>
+          <option value="the teaching staff">The teaching staff</option>
+          <option value="the executive staff">The executive staff</option>
+          <option value="the leadership team">The leadership team</option>
+          <option value="the science and STEAM teachers">The science and STEAM teachers</option>
           <option value="whoever handles incursions and excursions">Whoever handles incursions and excursions</option>
-          <option value="Principal">Principal</option>
-          <option value="Assistant Principal">Assistant Principal</option>
-          <option value="STEAM Coordinator">STEAM Coordinator</option>
-          <option value="Head of Science">Head of Science</option>
-          <option value="Head of Stage">Head of Stage</option>
-          <option value="Executive Teacher">Executive Teacher</option>
+          <option value="the Principal">The Principal</option>
+          <option value="the Assistant Principal">The Assistant Principal</option>
+          <option value="the STEAM Coordinator">The STEAM Coordinator</option>
+          <option value="the Head of Science">The Head of Science</option>
+          <option value="the Head of Stage">The Head of Stage</option>
+          <option value="the Executive Teacher">The Executive Teacher</option>
         </select>
       </div>
       <div class="field-group checkbox-row" style="margin-bottom:0">
@@ -726,6 +727,17 @@ function openModal(id){
   document.getElementById("mVisited").checked = r.previouslyVisited||false;
   document.getElementById("mNotes").value = r.notes||"";
   document.getElementById("mLastContact").value = r.lastContact||"";
+
+  // ── AUTO-SAVE: every field saves to localStorage as you type/change
+  const autoSaveFields = ["mSchool","mEmail","mContact","mPhone","mCity","mRecipient","mNotes","mLastContact"];
+  autoSaveFields.forEach(fid => {
+    const el = document.getElementById(fid);
+    if (!el) return;
+    el.oninput = () => { silentSave(); };
+  });
+  document.getElementById("mRecipientRole").onchange = () => { silentSave(); };
+  document.getElementById("mVisited").onchange = () => { silentSave(); };
+
   document.getElementById("statusPicker").innerHTML = STATUSES.map(s=>`
     <button type="button" class="status-opt s-${s.key} ${r.status===s.key?"active":""}" onclick="pickStatus('${s.key}')">${s.label}</button>
   `).join("");
@@ -891,6 +903,24 @@ function stampAction(type) {
   _outreachSkipped.add(editId);
 }
 
+function silentSave(){
+  // Saves all modal fields to localStorage without closing the modal
+  if(!editId) return;
+  const r = allData.find(x=>x.id===editId);
+  if(!r) return;
+  r.school = document.getElementById("mSchool").value.trim();
+  r.email = document.getElementById("mEmail").value.trim();
+  r.contact = document.getElementById("mContact").value.trim();
+  r.phone = document.getElementById("mPhone").value.trim();
+  r.city = document.getElementById("mCity").value.trim();
+  r.recipient = document.getElementById("mRecipient").value.trim();
+  r.recipientRole = document.getElementById("mRecipientRole").value;
+  r.previouslyVisited = document.getElementById("mVisited").checked;
+  r.notes = document.getElementById("mNotes").value.trim();
+  r.lastContact = document.getElementById("mLastContact").value.trim();
+  saveOverride(r);
+}
+
 function saveModal(){
   if(!editId) return;
   const r = allData.find(x=>x.id===editId);
@@ -1021,9 +1051,21 @@ function buildForwardTo(r) {
 
 // ── HELPER: render plain email HTML wrapper
 function plainWrap(subject, body) {
-  const escaped = body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Insert a visible divider between the office-lady section and the Dear [decision maker] section
+  const withDivider = body.replace(
+    /(
+
+)(Dear )/,
+    '
+
+─────────────────────────────────────
+
+$2'
+  );
+  const escaped = withDivider.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Subject shown as a subtle preview label only — NOT part of the email body sent to Outlook
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;font-size:15px;line-height:1.85;color:#1a1a1a;max-width:580px;margin:40px auto;padding:0 24px;background:#fff">
-<div style="margin-bottom:16px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;color:#555;font-family:monospace"><strong>Subject:</strong> ${subject}</div>
+<div style="margin-bottom:16px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;color:#555;font-family:monospace" data-preview-only="true"><strong>Subject:</strong> ${subject}</div>
 <pre style="font-family:Arial,sans-serif;font-size:15px;line-height:1.85;white-space:pre-wrap;color:#1a1a1a;margin:0">${escaped}</pre>
 </body></html>`;
 }
@@ -1061,13 +1103,7 @@ We are filling quickly over the coming weeks and I would genuinely love the oppo
 
 Please don't hesitate to reach out if you have any questions at all.
 
-Kind regards,
-
-Mena Salib (M.Ed)
-Director, Australian Digital Incursions
-0431 648 995
-info@australiandigitalincursions.com.au
-australiandigitalincursions.com.au`;
+Kind regards,`;
 
   r._plainSubject = subject;
   return plainWrap(subject, body);
@@ -1098,13 +1134,7 @@ For your peace of mind, we are fully insured with public liability coverage, hol
 
 If you have any questions at all, please don't hesitate to reach out. I would genuinely love the opportunity to bring this experience to ${school}.
 
-Kind regards,
-
-Mena Salib (M.Ed)
-Director, Australian Digital Incursions
-0431 648 995
-info@australiandigitalincursions.com.au
-australiandigitalincursions.com.au`;
+Kind regards,`;
 
   r._plainSubject = subject;
   return plainWrap(subject, body);
@@ -1139,12 +1169,22 @@ function openOutlook(){
     : `Immersive School Incursions for ${emailSchool.school} - Planetarium and VR`;
 
   // For plain/warm, pull the body text out of the preview frame
+  // Exclude the [data-preview-only] subject label div — that's just for display
+  // Also strip the trailing signature block since Outlook adds its own
   let body = "";
   if (isWarm || isPlain) {
     try {
       const frame = document.getElementById("emailPreviewFrame");
       if (frame && frame.contentDocument && frame.contentDocument.body) {
-        body = frame.contentDocument.body.innerText || "";
+        // Remove the preview-only subject label before reading text
+        const previewDiv = frame.contentDocument.querySelector("[data-preview-only]");
+        if (previewDiv) previewDiv.remove();
+        let rawText = frame.contentDocument.body.innerText || "";
+        // Strip the signature block (everything from "Kind regards," onwards)
+        // so Outlook uses its own saved signature instead
+        const sigIdx = rawText.indexOf("Kind regards,");
+        if (sigIdx > -1) rawText = rawText.substring(0, sigIdx).trimEnd();
+        body = rawText;
       }
     } catch(e) { body = ""; }
   }
