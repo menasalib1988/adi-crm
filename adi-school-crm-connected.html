@@ -454,13 +454,7 @@ tr:hover td{background:var(--surface)}
     <div class="field-group"><label>School</label><input type="text" id="mSchool"></div>
     <div class="field-group"><label>Email</label><input type="text" id="mEmail"></div>
     <div class="field-group"><label>Office Contact Name</label><input type="text" id="mContact" placeholder="e.g. Sandra, Louise, Denise"></div>
-    <div class="field-group"><label>Phone</label>
-      <div style="display:flex;gap:6px;align-items:center">
-        <input type="text" id="mPhone" placeholder="e.g. (02) 9526 3000" style="flex:1">
-        <button class="outreach-btn" id="fetchPhoneBtn" onclick="fetchPhoneNumber()" style="white-space:nowrap;padding:6px 10px;font-size:12px">📞 Fetch</button>
-      </div>
-      <div id="fetchPhoneStatus" style="font-size:11px;color:var(--green);margin-top:4px;display:none"></div>
-    </div>
+    <div class="field-group"><label>Phone</label><input type="text" id="mPhone" placeholder="e.g. (02) 9526 3000"></div>
     <div class="field-group"><label>Suburb</label><input type="text" id="mCity"></div>
     <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:14px">
       <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--amber);margin-bottom:10px">📧 Email Generator Fields</div>
@@ -923,6 +917,47 @@ function loadRating(r) {
   }
 }
 
+
+async function fetchPhoneForCard(id, btn) {
+  const r = allData.find(x => x.id === id);
+  if (!r) return;
+  const key = getGeminiKey();
+  if (!key) { alert('Add your Gemini API key first (click 🔑 API Key top right)'); return; }
+
+  btn.textContent = '⏳ Fetching...';
+  btn.disabled = true;
+
+  try {
+    const prompt = 'Find the main reception phone number for "' + r.school + '" in ' + (r.city || r.lga || 'NSW') + ', Australia. Return ONLY the phone number like (02) 9526 3000. If not found return: NOT_FOUND';
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:30,temperature:0.1}})
+    });
+    const data = await res.json();
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
+    if (!text || text === 'NOT_FOUND' || text.includes('not find') || text.length > 25) {
+      btn.textContent = '❌ Not found';
+      setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2000);
+    } else {
+      const cleaned = text.replace(/[^0-9()\s+\-]/g, '').trim();
+      if (cleaned.length >= 8) {
+        r.phone = cleaned;
+        saveOverride(r);
+        render();
+        renderOutreachList();
+      } else {
+        btn.textContent = '❌ Not found';
+        setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2000);
+      }
+    }
+  } catch(e) {
+    btn.textContent = '❌ Error';
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2000);
+  }
+}
+
 async function fetchPhoneNumber() {
   if (!editId) return;
   const r = allData.find(x => x.id === editId);
@@ -936,7 +971,7 @@ async function fetchPhoneNumber() {
   if (status) { status.style.display = 'block'; status.style.color = 'var(--muted)'; status.textContent = 'Searching...'; }
   try {
     const prompt = 'Find the main reception phone number for "' + r.school + '" in ' + (r.city || r.lga || 'NSW') + ', Australia. Return ONLY the phone number like (02) 9526 3000. If not found return: NOT_FOUND';
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:30,temperature:0.1}})
     });
@@ -973,7 +1008,7 @@ async function fetchMissingNumbers() {
     btn.textContent = (i+1) + '/' + noPhone.length;
     try {
       const prompt = 'Phone number for "' + r.school + '" in ' + (r.city || r.lga || 'NSW') + ' Australia. Return ONLY the number or NOT_FOUND';
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:20,temperature:0.1}})
       });
@@ -2494,7 +2529,7 @@ function renderOutreachList() {
         <button class="outreach-btn research" onclick="researchSchool(${r.id}, this)">🔍 Research</button>
         <button class="outreach-btn" onclick="calledAndEmailed(${r.id})" style="background:rgba(45,212,160,0.12);border-color:rgba(45,212,160,0.4);color:var(--green);font-weight:600">📞✉ Called & Emailed</button>
         <button class="outreach-btn skip" onclick="skipOutreach(${r.id})">↓ Skip</button>
-        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : ''}
+        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : `<button class="outreach-btn" id="fetchBtn_${r.id}" onclick="fetchPhoneForCard(${r.id}, this)" style="background:rgba(79,124,255,0.08);border-color:rgba(79,124,255,0.3);color:var(--accent);font-size:11px">📞 Fetch Number</button>`}
       </div>
     </div>`;
   }).join('');
