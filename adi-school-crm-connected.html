@@ -917,13 +917,11 @@ function loadRating(r) {
   }
 }
 
-async function fetchPhoneForCard(id) {
+async function fetchPhoneForCard(id, btn) {
   const r = allData.find(x => x.id === id);
-  if (!r) { alert('School not found for id: ' + id); return; }
-  const key = getGeminiKey();
-  if (!key) { alert('No API key found. Click the API Key button top right and enter your Gemini key.'); return; }
-  const btn = document.getElementById('fetchBtn_' + id);
-  if (!btn) { alert('Button not found'); return; }
+  if (!r) return;
+  const key = getApiKey();
+  if (!key) { alert('Add your Gemini API key first (click API Key top right)'); return; }
   btn.textContent = '⏳ Fetching...';
   btn.disabled = true;
   try {
@@ -932,15 +930,9 @@ async function fetchPhoneForCard(id) {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:20, temperature:0}})
     });
-    const raw = await res.text();
-    console.log('Gemini response:', raw);
-    const data = JSON.parse(raw);
-    if (data.error) {
-      alert('Gemini error: ' + data.error.message);
-      btn.textContent = '📞 Fetch Number'; btn.disabled = false; return;
-    }
+    const data = await res.json();
+    if (data.error) { btn.textContent = '❌ ' + data.error.message.substring(0,30); btn.disabled=false; return; }
     const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    console.log('Extracted text:', text);
     const cleaned = text.replace(/[^0-9()\s+]/g, '').trim();
     if (cleaned.length >= 8) {
       r.phone = cleaned;
@@ -948,12 +940,12 @@ async function fetchPhoneForCard(id) {
       render();
       renderOutreachList();
     } else {
-      btn.textContent = '❌ Not found: ' + text.substring(0,15);
-      setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 3000);
+      btn.textContent = '❌ Not found';
+      setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
     }
   } catch(e) {
-    alert('Fetch error: ' + e.message);
-    btn.textContent = '📞 Fetch Number'; btn.disabled = false;
+    btn.textContent = '❌ ' + e.message.substring(0,20);
+    setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
   }
 }
 
@@ -962,7 +954,7 @@ async function fetchPhoneNumber() {
 }
 
 async function fetchMissingNumbers() {
-  const key = getGeminiKey();
+  const key = getApiKey();
   if (!key) { alert('Add your Gemini API key first'); return; }
   const btn = document.getElementById('fetchAllBtn');
   if (!btn) return;
@@ -2497,7 +2489,7 @@ function renderOutreachList() {
         <button class="outreach-btn research" onclick="researchSchool(${r.id}, this)">🔍 Research</button>
         <button class="outreach-btn" onclick="calledAndEmailed(${r.id})" style="background:rgba(45,212,160,0.12);border-color:rgba(45,212,160,0.4);color:var(--green);font-weight:600">📞✉ Called & Emailed</button>
         <button class="outreach-btn skip" onclick="skipOutreach(${r.id})">↓ Skip</button>
-        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : `<button class="outreach-btn" id="fetchBtn_${r.id}" onclick="fetchPhoneForCard(${r.id})" style="background:rgba(79,124,255,0.08);border-color:rgba(79,124,255,0.3);color:var(--accent);font-size:11px">📞 Fetch Number</button>`}
+        ${r.phone ? `<a href="tel:${r.phone.replace(/[^0-9+]/g,'')}" class="outreach-btn" style="background:rgba(34,211,238,0.08);border-color:rgba(34,211,238,0.3);color:var(--teal);text-decoration:none">📞 ${r.phone}</a>` : `<button class="outreach-btn" id="fetchBtn_${r.id}" onclick="fetchPhoneForCard(${r.id}, this)" style="background:rgba(79,124,255,0.08);border-color:rgba(79,124,255,0.3);color:var(--accent);font-size:11px">📞 Fetch Number</button>`}
       </div>
     </div>`;
   }).join('');
