@@ -922,30 +922,39 @@ async function fetchPhoneForCard(id, btn) {
   if (!r) return;
   const key = getApiKey();
   if (!key) { alert('Add your Gemini API key first (click API Key top right)'); return; }
-  btn.textContent = '⏳ Fetching...';
-  btn.disabled = true;
+  if (!btn) btn = document.getElementById('fetchBtn_' + id);
+  if (btn) { btn.textContent = '⏳ Searching...'; btn.disabled = true; }
   try {
-    const prompt = 'What is the main reception phone number for ' + r.school + ' in ' + (r.city || r.lga || 'NSW') + ' Australia? Return ONLY the phone number in format (02) 9526 3000. Nothing else. If unknown return NOT_FOUND.';
+    // Use Gemini with Google Search grounding — finds the real number from the web, not guessed
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + key, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:20, temperature:0}})
+      body: JSON.stringify({
+        contents: [{parts:[{text: 'Find the main reception phone number for ' + r.school + ' in ' + (r.city||r.lga||'NSW') + ' NSW Australia. Return only the phone number, nothing else.'}]}],
+        tools: [{googleSearch: {}}],
+        generationConfig: {maxOutputTokens: 30, temperature: 0}
+      })
     });
     const data = await res.json();
-    if (data.error) { btn.textContent = '❌ ' + data.error.message.substring(0,30); btn.disabled=false; return; }
+    if (data.error) {
+      if (btn) { btn.textContent = '❌ ' + data.error.message.substring(0, 40); btn.disabled = false; }
+      return;
+    }
     const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    const cleaned = text.replace(/[^0-9()\s+]/g, '').trim();
-    if (cleaned.length >= 8) {
-      r.phone = cleaned;
+    // Extract Australian phone pattern from response
+    const match = text.match(/(\(0\d\)\s*\d{4}\s*\d{4}|0\d{8,9}|1[38]\d{2}\s*\d{3}\s*\d{3})/);
+    if (match) {
+      r.phone = match[0].trim();
       saveOverride(r);
       render();
       renderOutreachList();
     } else {
-      btn.textContent = '❌ Not found';
-      setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
+      if (btn) {
+        btn.textContent = '❌ Not found';
+        setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
+      }
     }
   } catch(e) {
-    btn.textContent = '❌ ' + e.message.substring(0,20);
-    setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
+    if (btn) { btn.textContent = '❌ Error'; btn.disabled = false; }
   }
 }
 
