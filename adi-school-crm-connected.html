@@ -917,80 +917,40 @@ function loadRating(r) {
   }
 }
 
-
 async function fetchPhoneForCard(id, btn) {
   const r = allData.find(x => x.id === id);
   if (!r) return;
   const key = getGeminiKey();
-  if (!key) { alert('Add your Gemini API key first (click 🔑 API Key top right)'); return; }
-
+  if (!key) { alert('Add your Gemini API key first (click API Key top right)'); return; }
   btn.textContent = '⏳ Fetching...';
   btn.disabled = true;
-
   try {
-    const prompt = 'Find the main reception phone number for "' + r.school + '" in ' + (r.city || r.lga || 'NSW') + ', Australia. Return ONLY the phone number like (02) 9526 3000. If not found return: NOT_FOUND';
+    const prompt = 'What is the main reception phone number for ' + r.school + ' in ' + (r.city || r.lga || 'NSW') + ' Australia? Return ONLY the phone number in format (02) 9526 3000. Nothing else. If unknown return NOT_FOUND.';
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:30,temperature:0.1}})
+      body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:20, temperature:0}})
     });
     const data = await res.json();
+    if (data.error) { btn.textContent = '❌ ' + data.error.message.substring(0,30); btn.disabled=false; return; }
     const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-
-    if (!text || text === 'NOT_FOUND' || text.includes('not find') || text.length > 25) {
-      btn.textContent = '❌ Not found';
-      setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2000);
+    const cleaned = text.replace(/[^0-9()\s+]/g, '').trim();
+    if (cleaned.length >= 8) {
+      r.phone = cleaned;
+      saveOverride(r);
+      render();
+      renderOutreachList();
     } else {
-      const cleaned = text.replace(/[^0-9()\s+\-]/g, '').trim();
-      if (cleaned.length >= 8) {
-        r.phone = cleaned;
-        saveOverride(r);
-        render();
-        renderOutreachList();
-      } else {
-        btn.textContent = '❌ Not found';
-        setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2000);
-      }
+      btn.textContent = '❌ Not found';
+      setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
     }
   } catch(e) {
-    btn.textContent = '❌ Error';
-    btn.disabled = false;
-    setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2000);
+    btn.textContent = '❌ ' + e.message.substring(0,20);
+    setTimeout(() => { btn.textContent = '📞 Fetch Number'; btn.disabled = false; }, 2500);
   }
 }
 
 async function fetchPhoneNumber() {
-  if (!editId) return;
-  const r = allData.find(x => x.id === editId);
-  if (!r) return;
-  const key = getGeminiKey();
-  if (!key) { alert('Add your Gemini API key first'); return; }
-  const btn = document.getElementById('fetchPhoneBtn');
-  const status = document.getElementById('fetchPhoneStatus');
-  btn.textContent = '⏳';
-  btn.disabled = true;
-  if (status) { status.style.display = 'block'; status.style.color = 'var(--muted)'; status.textContent = 'Searching...'; }
-  try {
-    const prompt = 'Find the main reception phone number for "' + r.school + '" in ' + (r.city || r.lga || 'NSW') + ', Australia. Return ONLY the phone number like (02) 9526 3000. If not found return: NOT_FOUND';
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:30,temperature:0.1}})
-    });
-    const data = await res.json();
-    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    if (!text || text === 'NOT_FOUND' || text.includes('not find') || text.length > 25) {
-      if (status) { status.style.color = '#f87171'; status.textContent = 'Could not find number'; }
-    } else {
-      const cleaned = text.replace(/[^0-9()\s+\-]/g, '').trim();
-      if (cleaned.length >= 8) {
-        r.phone = cleaned;
-        document.getElementById('mPhone').value = cleaned;
-        saveOverride(r); render();
-        if (status) { status.style.color = 'var(--green)'; status.textContent = 'Found: ' + cleaned + ' — saved!'; }
-      }
-    }
-  } catch(e) { if (status) { status.style.color = '#f87171'; status.textContent = 'Error: ' + e.message; } }
-  btn.textContent = '📞 Fetch';
-  btn.disabled = false;
+  // Legacy - now handled by fetchPhoneForCard
 }
 
 async function fetchMissingNumbers() {
