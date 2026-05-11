@@ -1614,18 +1614,6 @@ async function doSync(){
     const coldCount = allData.filter(r=>r.goneCold).length;
     _msg("✓ Done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
     render();
-    // Count emails sent today from Outlook and update session counter
-    const todayStr = new Date().toDateString();
-    const todayCount = allData.filter(r => r.lastEmailSent && new Date(r.lastEmailSent).toDateString() === todayStr).length;
-    _sessionEmailed = todayCount;
-    updateSessionStats();
-
-    // Force outreach queue to re-score with updated statuses so emailed schools disappear
-    _outreachScored = [];
-    scoreAllSchools();
-    if(document.getElementById("outreachPanel")?.classList.contains("open")){
-      renderOutreachList();
-    }
 
   } catch(e){ _msg("Error: "+e.message,"#ff5c6a"); console.error(e); }
 }
