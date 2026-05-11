@@ -305,6 +305,7 @@ tr:hover td{background:var(--surface)}
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn ghost" style="font-size:11px;padding:5px 12px;color:#a78bfa;border-color:#a78bfa" onclick="refreshOutreachList()">🔄 Refresh List</button>
+      <button class="btn ghost" id="fetchAllBtn" onclick="fetchMissingNumbers()" style="font-size:11px;padding:5px 12px;color:var(--accent);border-color:var(--accent)" title="AI finds phone numbers for schools missing one">📞 Fetch Numbers</button>
       <button class="btn ghost" style="font-size:11px;padding:4px 10px" onclick="toggleOutreachDay()">✕</button>
     </div>
   </div>
@@ -453,7 +454,13 @@ tr:hover td{background:var(--surface)}
     <div class="field-group"><label>School</label><input type="text" id="mSchool"></div>
     <div class="field-group"><label>Email</label><input type="text" id="mEmail"></div>
     <div class="field-group"><label>Office Contact Name</label><input type="text" id="mContact" placeholder="e.g. Sandra, Louise, Denise"></div>
-    <div class="field-group"><label>Phone</label><input type="text" id="mPhone" placeholder="e.g. (02) 9526 3000"></div>
+    <div class="field-group"><label>Phone</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" id="mPhone" placeholder="e.g. (02) 9526 3000" style="flex:1">
+        <button class="outreach-btn" id="fetchPhoneBtn" onclick="fetchPhoneNumber()" style="white-space:nowrap;padding:6px 10px;font-size:12px" title="Use AI to find this school's phone number">📞 Fetch</button>
+      </div>
+      <div id="fetchPhoneStatus" style="font-size:11px;color:var(--green);margin-top:4px;display:none"></div>
+    </div>
     <div class="field-group"><label>Suburb</label><input type="text" id="mCity"></div>
     <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:14px">
       <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--amber);margin-bottom:10px">📧 Email Generator Fields</div>
@@ -462,17 +469,17 @@ tr:hover td{background:var(--surface)}
         <label>Forward To (who in the school)</label>
         <select id="mRecipientRole">
           <option value="">— Select who to forward to —</option>
-          <option value="teaching staff">Teaching staff</option>
-          <option value="executive staff">Executive staff</option>
-          <option value="leadership team">Leadership team</option>
-          <option value="science and STEAM teachers">Science and STEAM teachers</option>
+          <option value="the teaching staff">The teaching staff</option>
+          <option value="the executive staff">The executive staff</option>
+          <option value="the leadership team">The leadership team</option>
+          <option value="the science and STEAM teachers">The science and STEAM teachers</option>
           <option value="whoever handles incursions and excursions">Whoever handles incursions and excursions</option>
-          <option value="the Principal">Principal</option>
-          <option value="the Assistant Principal">Assistant Principal</option>
-          <option value="the STEAM Coordinator">STEAM Coordinator</option>
-          <option value="the Head of Science">Head of Science</option>
-          <option value="the Head of Stage">Head of Stage</option>
-          <option value="the Executive Teacher">Executive Teacher</option>
+          <option value="the Principal">The Principal</option>
+          <option value="the Assistant Principal">The Assistant Principal</option>
+          <option value="the STEAM Coordinator">The STEAM Coordinator</option>
+          <option value="the Head of Science">The Head of Science</option>
+          <option value="the Head of Stage">The Head of Stage</option>
+          <option value="the Executive Teacher">The Executive Teacher</option>
         </select>
       </div>
       <div class="field-group checkbox-row" style="margin-bottom:0">
@@ -496,6 +503,18 @@ tr:hover td{background:var(--surface)}
         <button class="outreach-btn" style="background:rgba(245,166,35,0.1);border-color:rgba(245,166,35,0.3);color:var(--amber)" onclick="stampAction('visited')">🏫 Visited</button>
       </div>
       <div id="stampConfirm" style="font-size:11px;color:var(--green);margin-top:6px;display:none"></div>
+    </div>
+    <!-- RATING -->
+    <div style="background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.15);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--amber);margin-bottom:8px">⭐ Conversation Quality — how did it go?</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="ratingBtns">
+        <button class="outreach-btn" onclick="setRating(1)" id="rBtn1" title="Cold — not interested">❄️ Cold</button>
+        <button class="outreach-btn" onclick="setRating(2)" id="rBtn2" title="Neutral — take info">😐 Neutral</button>
+        <button class="outreach-btn" onclick="setRating(3)" id="rBtn3" title="Warm — seemed interested">😊 Warm</button>
+        <button class="outreach-btn" onclick="setRating(4)" id="rBtn4" title="Hot — very keen, follow up">🔥 Hot</button>
+        <button class="outreach-btn" onclick="setRating(5)" id="rBtn5" title="Booked — they want to book">✅ Booked</button>
+      </div>
+      <div id="ratingConfirm" style="font-size:11px;color:var(--amber);margin-top:6px;display:none"></div>
     </div>
     <div class="modal-footer">
       <button class="btn ghost" id="backToOutreachBtn" onclick="closeModalBackToOutreach()" style="display:none;border-color:#a78bfa;color:#a78bfa">← Back to Outreach</button>
@@ -707,7 +726,8 @@ function saveOverride(r){
     status:r.status, email:r.email, contact:r.contact, notes:r.notes,
     lastContact:r.lastContact, phone:r.phone||"",
     recipient:r.recipient||"", recipientRole:r.recipientRole||"",
-    previouslyVisited:r.previouslyVisited||false
+    previouslyVisited:r.previouslyVisited||false,
+    rating:r.rating||0
   };
   try{ localStorage.setItem("adi_crm_v9", JSON.stringify(overrides)); }catch(e){}
 }
@@ -727,6 +747,9 @@ function openModal(id){
   document.getElementById("mVisited").checked = r.previouslyVisited||false;
   document.getElementById("mNotes").value = r.notes||"";
   document.getElementById("mLastContact").value = r.lastContact||"";
+
+  // Load rating
+  loadRating(r);
 
   // ── AUTO-SAVE: every field saves to localStorage as you type/change
   const autoSaveFields = ["mSchool","mEmail","mContact","mPhone","mCity","mRecipient","mNotes","mLastContact"];
@@ -872,6 +895,135 @@ function closeModalBackToOutreach() {
 }
 
 let _modalFromOutreach = false;
+
+
+// ── RATING ──────────────────────────────────────────────────
+function setRating(val) {
+  if (!editId) return;
+  const r = allData.find(x => x.id === editId);
+  if (!r) return;
+  r.rating = val;
+  saveOverride(r);
+  // Update button styles
+  const labels = ['','❄️ Cold','😐 Neutral','😊 Warm','🔥 Hot','✅ Booked'];
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.getElementById('rBtn' + i);
+    if (!btn) continue;
+    btn.style.background = i === val ? 'rgba(245,166,35,0.25)' : '';
+    btn.style.borderColor = i === val ? 'var(--amber)' : '';
+    btn.style.color = i === val ? 'var(--amber)' : '';
+  }
+  const conf = document.getElementById('ratingConfirm');
+  if (conf) { conf.style.display = 'block'; conf.textContent = 'Saved: ' + labels[val]; setTimeout(() => conf.style.display = 'none', 2000); }
+  // If booked, update status
+  if (val === 5) { r.status = 'booked'; saveOverride(r); render(); }
+}
+
+function loadRating(r) {
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.getElementById('rBtn' + i);
+    if (!btn) continue;
+    const active = r.rating === i;
+    btn.style.background = active ? 'rgba(245,166,35,0.25)' : '';
+    btn.style.borderColor = active ? 'var(--amber)' : '';
+    btn.style.color = active ? 'var(--amber)' : '';
+  }
+}
+
+// ── FETCH PHONE (single school) ──────────────────────────────
+async function fetchPhoneNumber() {
+  if (!editId) return;
+  const r = allData.find(x => x.id === editId);
+  if (!r) return;
+  const key = getGeminiKey();
+  if (!key) { alert('Add your Gemini API key first (click 🔑 API Key)'); return; }
+
+  const btn = document.getElementById('fetchPhoneBtn');
+  const status = document.getElementById('fetchPhoneStatus');
+  btn.textContent = '⏳ Fetching…';
+  btn.disabled = true;
+  if (status) { status.style.display = 'block'; status.style.color = 'var(--muted)'; status.textContent = 'Searching for ' + r.school + '…'; }
+
+  try {
+    const prompt = `Find the main reception phone number for "${r.school}" located in ${r.city || r.lga || 'NSW'}, Australia. 
+Return ONLY the phone number in Australian format like (02) 9526 3000 or 1800 xxx xxx.
+If you cannot find it with confidence, return exactly: NOT_FOUND
+Do not include any other text.`;
+
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 50, temperature: 0.1 } })
+    });
+    const data = await res.json();
+    const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
+    if (!text || text === 'NOT_FOUND' || text.includes('not find') || text.length > 25) {
+      if (status) { status.style.color = '#f87171'; status.textContent = 'Could not find number for ' + r.school; }
+    } else {
+      // Clean up the number
+      const cleaned = text.replace(/[^0-9()\s+\-]/g, '').trim();
+      r.phone = cleaned;
+      document.getElementById('mPhone').value = cleaned;
+      saveOverride(r);
+      render();
+      if (status) { status.style.color = 'var(--green)'; status.textContent = '✅ Found: ' + cleaned + ' — saved!'; }
+    }
+  } catch(e) {
+    if (status) { status.style.color = '#f87171'; status.textContent = 'Error: ' + e.message; }
+  }
+  btn.textContent = '📞 Fetch';
+  btn.disabled = false;
+}
+
+// ── FETCH MISSING NUMBERS (bulk, outreach queue) ─────────────
+async function fetchMissingNumbers() {
+  const key = getGeminiKey();
+  if (!key) { alert('Add your Gemini API key first (click 🔑 API Key)'); return; }
+
+  const btn = document.getElementById('fetchAllBtn');
+  if (!btn) return;
+
+  // Get visible outreach cards without phone numbers
+  const noPhone = _outreachScored.filter(s => !s.school.phone || s.school.phone.trim() === '').slice(0, 20);
+  if (!noPhone.length) { btn.textContent = '✅ All have numbers'; setTimeout(() => btn.textContent = '📞 Fetch Numbers', 2000); return; }
+
+  btn.textContent = '⏳ 0/' + noPhone.length;
+  btn.disabled = true;
+
+  let found = 0;
+  for (let i = 0; i < noPhone.length; i++) {
+    const r = noPhone[i].school;
+    btn.textContent = '⏳ ' + (i+1) + '/' + noPhone.length;
+    try {
+      const prompt = `Find the main reception phone number for "${r.school}" located in ${r.city || r.lga || 'NSW'}, Australia.
+Return ONLY the phone number in Australian format. If not found, return: NOT_FOUND`;
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 30, temperature: 0.1 } })
+      });
+      const data = await res.json();
+      const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+      if (text && text !== 'NOT_FOUND' && !text.includes('not find') && text.length <= 20) {
+        const cleaned = text.replace(/[^0-9()\s+\-]/g, '').trim();
+        if (cleaned.length >= 8) {
+          r.phone = cleaned;
+          saveOverride(r);
+          found++;
+        }
+      }
+      // Small delay to avoid rate limiting
+      await new Promise(res => setTimeout(res, 400));
+    } catch(e) { /* skip on error */ }
+  }
+
+  render();
+  renderOutreachList();
+  btn.textContent = '✅ Found ' + found + '/' + noPhone.length;
+  btn.disabled = false;
+  setTimeout(() => btn.textContent = '📞 Fetch Numbers', 3000);
+}
 
 function stampAction(type) {
   if (!editId) return;
@@ -1051,15 +1203,18 @@ function buildForwardTo(r) {
 
 // ── HELPER: render plain email HTML wrapper
 function plainWrap(subject, body) {
-  // Simple string-based divider between office section and Dear section
-  const dearIdx = body.indexOf('\nDear ');
-  const withDivider = dearIdx > -1
-    ? body.slice(0, dearIdx) + '\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' + body.slice(dearIdx)
-    : body;
-  // Make website URL a clickable link, then escape the rest
-  const linked = withDivider.replace(/australiandigitalincursions\.com\.au/g, ' ADILINK ');
-  const escaped = linked.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/ ADILINK /g, '<a href="https://australiandigitalincursions.com.au" style="color:#4f7cff;text-decoration:none">australiandigitalincursions.com.au</a>');
+  // Insert a visible divider between the office-lady section and the Dear [decision maker] section
+  const withDivider = body.replace(
+    /(
+
+)(Dear )/,
+    '
+
+─────────────────────────────────────
+
+$2'
+  );
+  const escaped = withDivider.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // Subject shown as a subtle preview label only — NOT part of the email body sent to Outlook
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;font-size:15px;line-height:1.85;color:#1a1a1a;max-width:580px;margin:40px auto;padding:0 24px;background:#fff">
 <div style="margin-bottom:16px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;color:#555;font-family:monospace" data-preview-only="true"><strong>Subject:</strong> ${subject}</div>
@@ -1166,21 +1321,22 @@ function openOutlook(){
     : `Immersive School Incursions for ${emailSchool.school} - Planetarium and VR`;
 
   // For plain/warm, pull the body text out of the preview frame
-  // Exclude the [data-preview-only] subject label div — that's just for display
-  // Also strip the trailing signature block since Outlook adds its own
   let body = "";
   if (isWarm || isPlain) {
     try {
       const frame = document.getElementById("emailPreviewFrame");
       if (frame && frame.contentDocument && frame.contentDocument.body) {
-        // Remove the preview-only subject label before reading text
+        // Remove the preview-only subject label
         const previewDiv = frame.contentDocument.querySelector("[data-preview-only]");
         if (previewDiv) previewDiv.remove();
+        // Use innerText to get plain text (strips HTML, preserves line breaks)
+        // This means the URL appears as plain text which Outlook auto-links
         let rawText = frame.contentDocument.body.innerText || "";
-        // Strip the signature block (everything from "Kind regards," onwards)
-        // so Outlook uses its own saved signature instead
+        // Strip signature block — Outlook adds its own
         const sigIdx = rawText.indexOf("Kind regards,");
         if (sigIdx > -1) rawText = rawText.substring(0, sigIdx).trimEnd();
+        // Ensure website URL is on its own line for Outlook to auto-link it
+        rawText = rawText.replace(/: (australiandigitalincursions\.com\.au)/g, ":\n$1");
         body = rawText;
       }
     } catch(e) { body = ""; }
@@ -1417,8 +1573,6 @@ async function doSync(){
             }
             if(["not_contacted","contacted"].includes(school.status)){ school.status="emailed"; matched++; }
             saveOverride(school);
-            // Remove from outreach queue immediately if it's showing
-            _outreachScored = _outreachScored.filter(s => s.school.id !== school.id);
           }
         });
         if(d["@odata.nextLink"]) url=d["@odata.nextLink"]; else break;
@@ -1505,11 +1659,6 @@ async function doSync(){
     const coldCount = allData.filter(r=>r.goneCold).length;
     _msg("✓ Done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
     render();
-  // Refresh outreach queue so emailed schools disappear immediately
-  scoreAllSchools();
-  if(document.getElementById("outreachPanel")?.classList.contains("open")){
-    renderOutreachList();
-  }
 
   } catch(e){ _msg("Error: "+e.message,"#ff5c6a"); console.error(e); }
 }
@@ -2217,7 +2366,7 @@ function scoreSchool(r) {
   const reasons = [];
 
   // ── Exclude already booked / visited / not interested / replied
-  const skip = ['visited','booked','not_interested','replied','emailed'];
+  const skip = ['visited','booked','not_interested','replied'];
   if (skip.includes(r.status)) return null;
 
   // ── No email = penalise heavily but don't exclude
@@ -2281,7 +2430,7 @@ function scoreAllSchools() {
 
   // Update badge
   const badge = document.getElementById('outreachCount');
-  if (badge) badge.textContent = scored.length;
+  if (badge) badge.textContent = scored.filter(s => s.school.email).length;
 
   return scored;
 }
