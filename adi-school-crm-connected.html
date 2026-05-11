@@ -1051,18 +1051,11 @@ function buildForwardTo(r) {
 
 // ── HELPER: render plain email HTML wrapper
 function plainWrap(subject, body) {
-  // Insert a visible divider between the office-lady section and the Dear [decision maker] section
-  const withDivider = body.replace(
-    /(
-
-)(Dear )/,
-    '
-
-─────────────────────────────────────
-
-$2'
-  );
-  const escaped = withDivider.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Simple string-based divider between office section and Dear section
+  const dearIdx = body.indexOf('\nDear ');
+  const withDivider = dearIdx > -1
+    ? body.slice(0, dearIdx) + '\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' + body.slice(dearIdx)
+    : body; const escaped = withDivider.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // Subject shown as a subtle preview label only — NOT part of the email body sent to Outlook
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;font-size:15px;line-height:1.85;color:#1a1a1a;max-width:580px;margin:40px auto;padding:0 24px;background:#fff">
 <div style="margin-bottom:16px;padding:8px 12px;background:#f5f5f5;border-radius:4px;font-size:12px;color:#555;font-family:monospace" data-preview-only="true"><strong>Subject:</strong> ${subject}</div>
@@ -2213,7 +2206,7 @@ function scoreSchool(r) {
   const reasons = [];
 
   // ── Exclude already booked / visited / not interested / replied
-  const skip = ['visited','booked','not_interested','replied'];
+  const skip = ['visited','booked','not_interested','replied','emailed'];
   if (skip.includes(r.status)) return null;
 
   // ── No email = penalise heavily but don't exclude
@@ -2277,7 +2270,7 @@ function scoreAllSchools() {
 
   // Update badge
   const badge = document.getElementById('outreachCount');
-  if (badge) badge.textContent = scored.filter(s => s.school.email).length;
+  if (badge) badge.textContent = scored.length;
 
   return scored;
 }
