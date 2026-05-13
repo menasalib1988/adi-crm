@@ -287,7 +287,7 @@ tr:hover td{background:var(--surface)}
     <button id="outConnBtn2" onclick="doSignIn(2)" style="background:#0078d4;color:#fff" class="outbar-btn">🔗 Connect</button>
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
-  <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button><button id="outFullSyncBtn" onclick="fullSync()" style="display:none;background:#1a3050;color:#8a9bc4;font-size:11px" class="outbar-btn" title="Rescan all sent emails from scratch">↺ Full Sync</button>
+  <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
@@ -397,6 +397,14 @@ tr:hover td{background:var(--surface)}
     <option value="Gov">Government</option>
     <option value="Non-Gov">Non-Government</option>
   </select>
+  <select id="lastContactFilter" onchange="resetPage();render()" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer">
+    <option value="">All dates</option>
+    <option value="today">Contacted today</option>
+    <option value="week">This week</option>
+    <option value="month">This month</option>
+    <option value="never">Never contacted</option>
+    <option value="old">Over 30 days ago</option>
+  </select>
 </div>
 
 <div class="add-section" id="addSection">
@@ -420,7 +428,7 @@ tr:hover td{background:var(--surface)}
         <th>Phone</th>
         <th>Email</th>
         <th>Status</th>
-        <th>Last Contacted</th>
+        <th onclick="toggleLastContactSort()" style="cursor:pointer;user-select:none" id="thLastContacted">Last Contacted <span id="sortArrow">↕</span></th>
         <th>Notes</th>
         <th>Actions</th>
       </tr>
@@ -547,6 +555,7 @@ tr:hover td{background:var(--surface)}
 // ── NEXT OUTREACH DAY — variables declared first so nothing can call them before they exist
 let _outreachFilter = 'all';
 let _sessionEmailed = 0;
+let _sortLastContact = 0; // 0=none, 1=newest first, -1=oldest first
 let _outreachScored = [];
 let _outreachSkipped = new Set();
 const TARGET_EMAILS = 50;
@@ -630,14 +639,49 @@ function getFiltered(){
   const sf = document.getElementById("statusFilter").value;
   const tf = document.getElementById("typeFilter").value;
   const sec = document.getElementById("sectorFilter").value;
-  return allData.filter(r=>{
+  const lcf = document.getElementById("lastContactFilter")?.value || "";
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfToday); startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thirtyDaysAgo = new Date(now - 30 * 864e5);
+
+  let results = allData.filter(r=>{
     if(q && !r.school.toLowerCase().includes(q) && !(r.city||"").toLowerCase().includes(q) && !(r.email||"").toLowerCase().includes(q)) return false;
     if(lga && r.lga !== lga) return false;
     if(sf && r.status !== sf) return false;
     if(tf && r.schoolType !== tf) return false;
     if(sec && r.sector !== sec) return false;
+    if(lcf) {
+      const lc = r.lastContact ? new Date(r.lastContact) : null;
+      if(lcf === "never" && lc) return false;
+      if(lcf === "never" && !lc) return true;
+      if(!lc) return false;
+      if(lcf === "today" && lc < startOfToday) return false;
+      if(lcf === "week" && lc < startOfWeek) return false;
+      if(lcf === "month" && lc < startOfMonth) return false;
+      if(lcf === "old" && lc >= thirtyDaysAgo) return false;
+    }
     return true;
   });
+
+  // Sort by last contacted if active
+  if(_sortLastContact !== 0) {
+    results = results.slice().sort((a,b)=>{
+      const da = a.lastContact ? new Date(a.lastContact) : new Date(0);
+      const db = b.lastContact ? new Date(b.lastContact) : new Date(0);
+      return _sortLastContact === 1 ? db - da : da - db;
+    });
+  }
+  return results;
+}
+
+function toggleLastContactSort(){
+  _sortLastContact = _sortLastContact === 1 ? -1 : 1;
+  const arrow = document.getElementById("sortArrow");
+  if(arrow) arrow.textContent = _sortLastContact === 1 ? "↓" : "↑";
+  render();
 }
 
 function renderStats(){
@@ -1473,11 +1517,6 @@ async function _gf(path, opts={}){
   return r.status===204 ? {} : r.json();
 }
 
-function fullSync(){
-  localStorage.removeItem("adi_last_sync_time");
-  doSync();
-}
-
 async function doSync(){
   const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   if(!connectedAccounts.length){ _msg("Not connected — click Connect Outlook","#f59e0b"); return; }
@@ -1485,24 +1524,13 @@ async function doSync(){
   const idx = buildSchoolIndex();
   let matched=0, sentCount=0, replyCount=0, noReplyCount=0;
 
-  // ── INCREMENTAL: only fetch emails since last sync ──
-  const lastSyncKey = "adi_last_sync_time";
-  const lastSyncRaw = localStorage.getItem(lastSyncKey);
-  const lastSyncTime = lastSyncRaw ? new Date(lastSyncRaw) : null;
-  const isFullSync = !lastSyncTime;
-  const filterParam = lastSyncTime ? "&$filter=sentDateTime ge " + lastSyncTime.toISOString() : "";
-  if (isFullSync) {
-    _msg("First sync — scanning all sent emails…","#38bdf8");
-  } else {
-    _msg("Syncing new emails since " + lastSyncTime.toLocaleDateString("en-AU") + "…","#38bdf8");
-  }
-
   try{
     for(const acctNum of connectedAccounts){
       const acctLabel = acctNum===2 ? "Planetariums" : "ADI";
 
       // ── SCAN SENT ITEMS ──────────────────────────────────
-      let url="/me/mailFolders/SentItems/messages?$top=100&$select=toRecipients,sentDateTime,subject,bodyPreview&$orderby=sentDateTime desc" + filterParam;
+      _msg("Scanning "+acctLabel+" sent emails…","#38bdf8");
+      let url="/me/mailFolders/SentItems/messages?$top=100&$select=toRecipients,sentDateTime,subject,bodyPreview&$orderby=sentDateTime desc";
       for(let p=0;p<20;p++){
         const d = await _gfAcct(acctNum, url);
         const msgs = d.value||[];
@@ -1628,9 +1656,7 @@ async function doSync(){
     updateActivityPanel();
     updateGoneColdPanel();
     const coldCount = allData.filter(r=>r.goneCold).length;
-    localStorage.setItem(lastSyncKey, new Date().toISOString());
-    const syncLabel = isFullSync ? "Full sync" : "Incremental sync";
-    _msg("✓ "+syncLabel+" done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
+    _msg("✓ Done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
     render();
 
     // Count emails sent TODAY from Outlook and update session bar
