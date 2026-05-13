@@ -287,7 +287,7 @@ tr:hover td{background:var(--surface)}
     <button id="outConnBtn2" onclick="doSignIn(2)" style="background:#0078d4;color:#fff" class="outbar-btn">🔗 Connect</button>
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
-  <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
+  <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button><button id="outFullSyncBtn" onclick="fullSync()" style="display:none;background:#1a3050;color:#8a9bc4;font-size:11px" class="outbar-btn" title="Rescan all sent emails from scratch">↺ Full Sync</button>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
@@ -1473,6 +1473,11 @@ async function _gf(path, opts={}){
   return r.status===204 ? {} : r.json();
 }
 
+function fullSync(){
+  localStorage.removeItem("adi_last_sync_time");
+  doSync();
+}
+
 async function doSync(){
   const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   if(!connectedAccounts.length){ _msg("Not connected — click Connect Outlook","#f59e0b"); return; }
@@ -1480,13 +1485,24 @@ async function doSync(){
   const idx = buildSchoolIndex();
   let matched=0, sentCount=0, replyCount=0, noReplyCount=0;
 
+  // ── INCREMENTAL: only fetch emails since last sync ──
+  const lastSyncKey = "adi_last_sync_time";
+  const lastSyncRaw = localStorage.getItem(lastSyncKey);
+  const lastSyncTime = lastSyncRaw ? new Date(lastSyncRaw) : null;
+  const isFullSync = !lastSyncTime;
+  const filterParam = lastSyncTime ? "&$filter=sentDateTime ge " + lastSyncTime.toISOString() : "";
+  if (isFullSync) {
+    _msg("First sync — scanning all sent emails…","#38bdf8");
+  } else {
+    _msg("Syncing new emails since " + lastSyncTime.toLocaleDateString("en-AU") + "…","#38bdf8");
+  }
+
   try{
     for(const acctNum of connectedAccounts){
       const acctLabel = acctNum===2 ? "Planetariums" : "ADI";
 
       // ── SCAN SENT ITEMS ──────────────────────────────────
-      _msg("Scanning "+acctLabel+" sent emails…","#38bdf8");
-      let url="/me/mailFolders/SentItems/messages?$top=100&$select=toRecipients,sentDateTime,subject,bodyPreview&$orderby=sentDateTime desc";
+      let url="/me/mailFolders/SentItems/messages?$top=100&$select=toRecipients,sentDateTime,subject,bodyPreview&$orderby=sentDateTime desc" + filterParam;
       for(let p=0;p<20;p++){
         const d = await _gfAcct(acctNum, url);
         const msgs = d.value||[];
@@ -1612,7 +1628,9 @@ async function doSync(){
     updateActivityPanel();
     updateGoneColdPanel();
     const coldCount = allData.filter(r=>r.goneCold).length;
-    _msg("✓ Done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
+    localStorage.setItem(lastSyncKey, new Date().toISOString());
+    const syncLabel = isFullSync ? "Full sync" : "Incremental sync";
+    _msg("✓ "+syncLabel+" done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
     render();
 
     // Count emails sent TODAY from Outlook and update session bar
