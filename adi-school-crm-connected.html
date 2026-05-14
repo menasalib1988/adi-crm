@@ -622,14 +622,6 @@ function hydrate(){
   allData.forEach(r => {
     const ov = overrides[r.id];
     if(ov) Object.assign(r, ov);
-    const dates = [r.lastReplyDate, r.lastEmailSent].filter(Boolean).map(d=>new Date(d)).filter(d=>!isNaN(d));
-    if(dates.length){
-      const latest = new Date(Math.max(...dates));
-      const formatted = latest.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
-      if(!r.lastContact || new Date(r.lastContact) < latest) r.lastContact = formatted;
-    }
-    if(r.lastReplyDate && ["not_contacted","contacted","emailed","no_reply"].includes(r.status)) r.status = "replied";
-    else if(r.lastEmailSent && ["not_contacted","contacted"].includes(r.status)) r.status = "emailed";
   });
 
   const lgas = [...new Set(allData.map(r=>r.lga))].sort();
@@ -772,19 +764,7 @@ function saveOverride(r){
     lastContact:r.lastContact, phone:r.phone||"",
     recipient:r.recipient||"", recipientRole:r.recipientRole||"",
     previouslyVisited:r.previouslyVisited||false,
-    rating:r.rating||0,
-    lastEmailSent:r.lastEmailSent||null,
-    lastEmailSubject:r.lastEmailSubject||null,
-    lastReplyDate:r.lastReplyDate||null,
-    lastReplySubject:r.lastReplySubject||null,
-    lastReplyPreview:r.lastReplyPreview||null,
-    lastReplySender:r.lastReplySender||null,
-    lastReplyRead:r.lastReplyRead||null,
-    lastReplyAcct:r.lastReplyAcct||null,
-    conversationIds:r.conversationIds||null,
-    callLog:r.callLog||null,
-    goneCold:r.goneCold||false,
-    goneColdSince:r.goneColdSince||null
+    rating:r.rating||0
   };
   try{ localStorage.setItem("adi_crm_v9", JSON.stringify(overrides)); }catch(e){}
 }
@@ -1248,34 +1228,31 @@ function buildPostCallEmail(r) {
   const greeting = contact ? `Hi ${contact},` : 'Hi,';
   const school = r.school;
   const forwardTo = buildForwardTo(r);
+  const recipientFirstName = r.recipient ? r.recipient.split(' ')[0] : forwardTo;
   const subject = `Following Up — Australian Digital Incursions for ${school}`;
 
   const body = `${greeting}
 
-It was so lovely speaking with you today — thank you again for your time and for being so welcoming.
+It was so lovely speaking with you today, thank you again for your time and for being so welcoming.
 
-As promised, I'm sending through some information about what we do at Australian Digital Incursions. When you get a moment, would you mind please forwarding this on to ${forwardTo}? I'd really appreciate it.
+As promised, I'm sending through some information about what we do at Australian Digital Incursions. When you get a moment, would you mind please forwarding this on to ${recipientFirstName}? I'd really appreciate it.
 
 
-Dear ${forwardTo},
+Dear ${recipientFirstName},
 
-My name is Mena Salib and I am a qualified NSW teacher with over 15 years of experience delivering engaging STEAM experiences to students across a wide range of year groups. I am also the Director of Australian Digital Incursions, where we bring Science, Space, and immersive digital learning directly to your school through our mobile inflatable planetarium dome and Meta Quest VR experiences.
+My name is Mena Salib, Director of Australian Digital Incursions. I know one of the real challenges in schools today is finding learning experiences that students are genuinely stoked by, something that doesn't just tick a curriculum box, but actually stops them in their tracks, challenges how they see the world, and leaves them thinking differently. That's exactly what we set out to create.
+
+We bring two immersive experiences directly into your school hall, a mobile inflatable planetarium dome and Meta Quest VR headsets, and the feedback we consistently get is that students walk out having had their perception of the universe completely shifted. Some schools have reached out the next day just to tell us the kids couldn't stop talking about it, and that honestly means more to us than anything else.
 
 The biggest thing schools love is how easy we make everything. No buses, no excursion forms, no complicated organisation for staff. We come to you, set everything up, run the sessions, and pack everything down afterwards.
 
-We've recently launched our new website and I'd genuinely love for you to have a look: australiandigitalincursions.com.au
-
-I'm really proud of what we've built because the website finally reflects what students actually experience during our sessions.
-
-To be completely honest, as a teacher myself, I know schools hear a lot of promises from incursions. That's something I've always been conscious of with ADI. What matters most to us is that students walk away excited, engaged, and still talking about the experience afterwards. Some schools have even reached out the next day just to tell us the students couldn't stop talking about it, and that honestly means more to me than anything else.
+We've recently launched our new website and I'd genuinely love for you to have a look: https://australiandigitalincursions.com.au
 
 For your peace of mind, we are fully insured with public liability coverage, hold current Working With Children Checks, and carry all relevant risk assessments and compliance documentation. Everything is prepared and organised well before the day.
 
 We are filling quickly over the coming weeks and I would genuinely love the opportunity to bring this experience to ${school}.
 
-Please don't hesitate to reach out if you have any questions at all.
-
-Kind regards,`;
+Please don't hesitate to reach out with any questions at all.`;
 
   r._plainSubject = subject;
   return plainWrap(subject, body);
@@ -1300,7 +1277,7 @@ The biggest advantage for schools is how simple the entire process is. No buses,
 ${personalLine ? '\n' + personalLine + '\n' : ''}
 We have recently been delivering sessions to schools throughout the ${lga} area and bookings are filling quickly over the coming weeks. It really is an experience students don't forget.
 
-We've also recently launched our new website and I'd genuinely love for you to take a look: australiandigitalincursions.com.au
+We've also recently launched our new website and I'd genuinely love for you to take a look: https://australiandigitalincursions.com.au
 
 For your peace of mind, we are fully insured with public liability coverage, hold current Working With Children Checks, and carry all relevant risk assessments and compliance documentation.
 
@@ -1379,7 +1356,8 @@ function markEmailed(){
   }
 }
 
-// modal listeners in DOMContentLoaded
+document.getElementById("modalOverlay").addEventListener("click",function(e){ if(e.target===this) closeModal(); });
+document.getElementById("emailModalOverlay").addEventListener("click",function(e){ if(e.target===this) closeEmailModal(); });
 
 
 // ── OUTLOOK SYNC v2 (school-name matching) ───────────────
@@ -1602,7 +1580,7 @@ async function doSync(){
       const convIdx = new Map();
       allData.forEach(r=>{ if(r.conversationIds) Object.keys(r.conversationIds).forEach(cid=>convIdx.set(cid,r)); });
 
-      let url2="/me/mailFolders/Inbox/messages?$top=100&$select=from,receivedDateTime,subject,bodyPreview,body,isRead,conversationId&$orderby=receivedDateTime desc";
+      let url2="/me/mailFolders/Inbox/messages?$top=100&$select=from,receivedDateTime,subject,bodyPreview,isRead,conversationId&$orderby=receivedDateTime desc";
       for(let p=0;p<10;p++){
         const d = await _gfAcct(acctNum, url2);
         const msgs = d.value||[];
@@ -1610,32 +1588,14 @@ async function doSync(){
         msgs.forEach(msg=>{
           const dt = new Date(msg.receivedDateTime);
           let school = null;
-
-          // ── WEBSITE ENQUIRY: extract school name from form body
-          const isWebEnquiry = (msg.subject||"").includes("Enquire - Australian Digital Incursions");
-          if(isWebEnquiry){
-            // Pull school name from the form body — "Primary School Name: Punchbowl Public school"
-            const bodyText = (msg.body?.content||msg.bodyPreview||"").replace(/<[^>]+>/g," ");
-            const snParts = bodyText.split("School Name:");
-            const rawName = snParts.length > 1 ? snParts[snParts.length-1].split("Name:")[0].split("Email")[0].split("Phone")[0].split("Year")[0].trim() : null;
-            if(rawName && rawName.length > 2){
-              const nameLower = rawName.toLowerCase().replace(/[^a-z ]/g,"").trim();
-              school = allData.find(r=>{
-                const sn = r.school.toLowerCase();
-                return sn === nameLower || sn.includes(nameLower) || nameLower.includes(sn.replace(/public|primary|school/g,"").trim());
-              }) || null;
-            }
-            if(!school) return; // skip — don't misattribute to wrong school
-          } else {
-            // 1. Best match: conversationId
-            if(msg.conversationId) school = convIdx.get(msg.conversationId)||null;
-            // 2. Subject line match
-            if(!school) school = findSchoolInSubject(msg.subject, idx);
-            // 3. Exact email address match
-            if(!school){
-              const em=(msg.from?.emailAddress?.address||"").toLowerCase();
-              school=allData.find(r=>r.email&&r.email.toLowerCase()===em)||null;
-            }
+          // 1. Best match: conversationId — links reply directly to the school you emailed
+          if(msg.conversationId) school = convIdx.get(msg.conversationId)||null;
+          // 2. Subject line match
+          if(!school) school = findSchoolInSubject(msg.subject, idx);
+          // 3. Exact email address match
+          if(!school){
+            const em=(msg.from?.emailAddress?.address||"").toLowerCase();
+            school=allData.find(r=>r.email&&r.email.toLowerCase()===em)||null;
           }
           if(school){
             replyCount++;
@@ -1920,7 +1880,9 @@ function openThreadViewer(id) {
 function closeThreadModal() {
   document.getElementById('threadModalOverlay').classList.remove('open');
 }
-// threadModalOverlay listener in DOMContentLoaded
+document.getElementById('threadModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeThreadModal();
+});
 
 async function loadThreads() {
   _showThreadLoading();
@@ -2355,7 +2317,7 @@ function openCalSchoolModal(id){
 function closeCalSchoolModal(){
   document.getElementById('calSchoolModal').classList.remove('open');
 }
-// calSchoolModal listener in DOMContentLoaded
+document.getElementById('calSchoolModal').addEventListener('click', function(e){ if(e.target===this) closeCalSchoolModal(); });
 
 function renderCalSchoolTimeline(id){
   const r = allData.find(x=>x.id===id);
@@ -2738,7 +2700,9 @@ function updateApiKeyBtn() {
   btn.style.color = hasKey ? 'var(--green)' : 'var(--amber)';
 }
 
-// apikeyModalOverlay listener in DOMContentLoaded
+document.getElementById('apikeyModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeApiKeyModal();
+});
 
 // ── RESEARCH SCHOOL (API-key aware) ──────────────────────
 async function researchSchool(id, btn) {
