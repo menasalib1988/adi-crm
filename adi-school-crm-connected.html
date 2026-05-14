@@ -288,6 +288,8 @@ tr:hover td{background:var(--surface)}
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
+  <button id="debugSyncBtn" onclick="debugSync()" style="display:none;background:#1a3050;color:#f59e0b;font-size:11px" class="outbar-btn">🔍 Debug</button>
+  <span id="lastSyncedLabel" style="display:none;font-size:11px;color:#64748b;margin-left:6px;"></span>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
@@ -776,7 +778,19 @@ function saveOverride(r){
     lastContact:r.lastContact, phone:r.phone||"",
     recipient:r.recipient||"", recipientRole:r.recipientRole||"",
     previouslyVisited:r.previouslyVisited||false,
-    rating:r.rating||0
+    rating:r.rating||0,
+    lastEmailSent:r.lastEmailSent||null,
+    lastEmailSubject:r.lastEmailSubject||null,
+    lastReplyDate:r.lastReplyDate||null,
+    lastReplySubject:r.lastReplySubject||null,
+    lastReplyPreview:r.lastReplyPreview||null,
+    lastReplySender:r.lastReplySender||null,
+    lastReplyRead:r.lastReplyRead||null,
+    lastReplyAcct:r.lastReplyAcct||null,
+    conversationIds:r.conversationIds||null,
+    callLog:r.callLog||null,
+    goneCold:r.goneCold||false,
+    goneColdSince:r.goneColdSince||null
   };
   try{ localStorage.setItem("adi_crm_v9", JSON.stringify(overrides)); }catch(e){}
 }
@@ -1371,7 +1385,7 @@ function markEmailed(){
   }
 }
 
-// Modal overlay listeners moved to DOMContentLoaded below
+// modal listeners in DOMContentLoaded
 
 
 // ── OUTLOOK SYNC v2 (school-name matching) ───────────────
@@ -1526,6 +1540,50 @@ async function _gf(path, opts={}){
   if(r.status===401){ _token=null; _updateLegacyToken(); throw new Error("Session expired — please reconnect"); }
   if(!r.ok){ throw new Error("Graph "+r.status); }
   return r.status===204 ? {} : r.json();
+}
+
+
+function updateLastSyncedDisplay(){
+  const lbl=document.getElementById('lastSyncedLabel');
+  if(!lbl) return;
+  const raw=localStorage.getItem('adi_lastSyncedAt');
+  if(!raw) return;
+  const diff=Math.round((Date.now()-new Date(raw))/60000);
+  lbl.textContent = diff<1?'Synced just now':diff===1?'Synced 1 min ago':diff<60?'Synced '+diff+' mins ago':'Synced '+Math.round(diff/60)+'h ago';
+  lbl.style.display='inline';
+}
+
+async function debugSync(){
+  const connectedAccounts=[1,2].filter(n=>_accounts[n].token&&Date.now()<_accounts[n].exp);
+  if(!connectedAccounts.length){ alert("Not connected"); return; }
+  const pb=allData.find(r=>r.school&&r.school.toLowerCase().includes("punchbowl public"));
+  let msg="=== PUNCHBOWL DEBUG ===\n";
+  if(!pb){ msg+="NOT FOUND in allData\n"; }
+  else{
+    msg+=`Found: ${pb.school} (id:${pb.id})\n`;
+    msg+=`email: ${pb.email||"NONE"}\n`;
+    msg+=`status: ${pb.status}\n`;
+    msg+=`lastContact: ${pb.lastContact||"NONE"}\n`;
+    msg+=`lastEmailSent: ${pb.lastEmailSent||"NONE"}\n`;
+    msg+=`lastReplyDate: ${pb.lastReplyDate||"NONE"}\n`;
+    msg+=`conversationIds: ${pb.conversationIds?JSON.stringify(Object.keys(pb.conversationIds)):"NONE"}\n`;
+    msg+=`callLog entries: ${pb.callLog?pb.callLog.length:0}\n`;
+  }
+  const convIdx=new Map();
+  allData.forEach(r=>{ if(r.conversationIds) Object.keys(r.conversationIds).forEach(cid=>convIdx.set(cid,r)); });
+  msg+=`\nconvIdx size: ${convIdx.size}\n`;
+  msg+="\n=== LAST 10 INBOX ===\n";
+  const acctNum=connectedAccounts[0];
+  const url="/me/mailFolders/Inbox/messages?$top=10&$select=from,receivedDateTime,subject,conversationId&$orderby=receivedDateTime desc";
+  const d=await _gfAcct(acctNum,url);
+  (d.value||[]).forEach(m=>{
+    const from=m.from?.emailAddress?.address||"?";
+    const convMatch=m.conversationId?convIdx.get(m.conversationId):null;
+    const subjMatch=findSchoolInSubject(m.subject,buildSchoolIndex());
+    const exactMatch=allData.find(r=>r.email&&r.email.toLowerCase()===from.toLowerCase());
+    msg+=`\nFROM: ${from}\nSubj: ${(m.subject||"").substring(0,50)}\nConvID: ${convMatch?convMatch.school:"none"} | Subj: ${subjMatch?subjMatch.school:"none"} | Email: ${exactMatch?exactMatch.school:"none"}\n`;
+  });
+  alert(msg);
 }
 
 async function doSync(){
@@ -1797,6 +1855,10 @@ function _setUI(acct, on, email){
   const anyOn = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   const s=document.getElementById("outSyncBtn");
   if(s) s.style.display=anyOn?"inline-block":"none";
+  const db=document.getElementById("debugSyncBtn");
+  if(db) db.style.display=anyOn?"inline-block":"none";
+  const lsl=document.getElementById("lastSyncedLabel");
+  if(lsl&&anyOn) { lsl.style.display="inline"; updateLastSyncedDisplay(); }
 }
 
 function toggleGoneCold(){
@@ -1894,7 +1956,7 @@ function openThreadViewer(id) {
 function closeThreadModal() {
   document.getElementById('threadModalOverlay').classList.remove('open');
 }
-// threadModalOverlay listener moved to DOMContentLoaded below
+// threadModalOverlay listener in DOMContentLoaded
 
 async function loadThreads() {
   _showThreadLoading();
@@ -2329,7 +2391,7 @@ function openCalSchoolModal(id){
 function closeCalSchoolModal(){
   document.getElementById('calSchoolModal').classList.remove('open');
 }
-// calSchoolModal listener moved to DOMContentLoaded below
+// calSchoolModal listener in DOMContentLoaded
 
 function renderCalSchoolTimeline(id){
   const r = allData.find(x=>x.id===id);
@@ -2712,7 +2774,7 @@ function updateApiKeyBtn() {
   btn.style.color = hasKey ? 'var(--green)' : 'var(--amber)';
 }
 
-// apikeyModalOverlay listener moved to DOMContentLoaded below
+// apikeyModalOverlay listener in DOMContentLoaded
 
 // ── RESEARCH SCHOOL (API-key aware) ──────────────────────
 async function researchSchool(id, btn) {
@@ -2836,20 +2898,6 @@ function toggleOutreachDay() {
 }
 
 // ── END NEXT OUTREACH DAY ─────────────────────────────────
-
-document.addEventListener('DOMContentLoaded', function(){
-  var pairs = [
-    ['modalOverlay',       function(){ closeModal(); }],
-    ['emailModalOverlay',  function(){ closeEmailModal(); }],
-    ['threadModalOverlay', function(){ closeThreadModal(); }],
-    ['calSchoolModal',     function(){ closeCalSchoolModal(); }],
-    ['apikeyModalOverlay', function(){ closeApiKeyModal(); }]
-  ];
-  pairs.forEach(function(p){
-    var el = document.getElementById(p[0]);
-    if(el) el.addEventListener('click', function(e){ if(e.target===this) p[1](); });
-  });
-});
 </script>
 
 <!-- API KEY MODAL -->
