@@ -623,7 +623,7 @@ function hydrate(){
     const ov = overrides[r.id];
     if(ov) Object.assign(r, ov);
 
-    // Use lastReplyDate or lastEmailSent to fill lastContact if missing or older
+    // Derive lastContact from sync data already in localStorage
     const dates = [r.lastReplyDate, r.lastEmailSent].filter(Boolean).map(d=>new Date(d)).filter(d=>!isNaN(d));
     if(dates.length){
       const latest = new Date(Math.max(...dates));
@@ -631,7 +631,7 @@ function hydrate(){
       if(!r.lastContact || new Date(r.lastContact) < latest) r.lastContact = formatted;
     }
 
-    // Fix status based on what sync already found
+    // Fix status from sync data
     if(r.lastReplyDate && ["not_contacted","contacted","emailed","no_reply"].includes(r.status)) r.status = "replied";
     else if(r.lastEmailSent && ["not_contacted","contacted"].includes(r.status)) r.status = "emailed";
   });
@@ -1895,8 +1895,9 @@ function openThreadViewer(id) {
 function closeThreadModal() {
   document.getElementById('threadModalOverlay').classList.remove('open');
 }
-document.getElementById('threadModalOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeThreadModal();
+document.addEventListener('DOMContentLoaded', function() {
+  const ov = document.getElementById('threadModalOverlay');
+  if(ov) ov.addEventListener('click', function(e) { if(e.target===this) closeThreadModal(); });
 });
 
 async function loadThreads() {
