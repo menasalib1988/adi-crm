@@ -288,6 +288,7 @@ tr:hover td{background:var(--surface)}
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
+  <button id="debugSyncBtn" onclick="debugSync()" style="display:none;background:#1a3050;color:#f59e0b;font-size:11px" class="outbar-btn">🔍 Debug</button>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
@@ -1517,6 +1518,50 @@ async function _gf(path, opts={}){
   return r.status===204 ? {} : r.json();
 }
 
+async function debugSync(){
+  const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
+  if(!connectedAccounts.length){ alert("Not connected"); return; }
+
+  // 1. Find Punchbowl in allData
+  const pb = allData.find(r=>r.school&&r.school.toLowerCase().includes("punchbowl public"));
+  let msg = "=== PUNCHBOWL DEBUG ===\n";
+  if(!pb){ msg += "❌ Punchbowl Public NOT FOUND in allData\n"; }
+  else {
+    msg += `✅ Found: ${pb.school} (id:${pb.id})\n`;
+    msg += `   email: ${pb.email||"NONE"}\n`;
+    msg += `   status: ${pb.status}\n`;
+    msg += `   lastContact: ${pb.lastContact||"NONE"}\n`;
+    msg += `   lastEmailSent: ${pb.lastEmailSent||"NONE"}\n`;
+    msg += `   lastReplyDate: ${pb.lastReplyDate||"NONE"}\n`;
+    msg += `   conversationIds: ${pb.conversationIds ? JSON.stringify(Object.keys(pb.conversationIds)) : "NONE"}\n`;
+  }
+
+  // 2. Check convIdx size
+  const convIdx = new Map();
+  allData.forEach(r=>{ if(r.conversationIds) Object.keys(r.conversationIds).forEach(cid=>convIdx.set(cid,r)); });
+  msg += `\nconvIdx has ${convIdx.size} conversation IDs stored\n`;
+
+  // 3. Fetch last 10 inbox messages and show matching
+  msg += "\n=== LAST 10 INBOX MSGS ===\n";
+  const acctNum = connectedAccounts[0];
+  const url = "/me/mailFolders/Inbox/messages?$top=10&$select=from,receivedDateTime,subject,conversationId&$orderby=receivedDateTime desc";
+  const d = await _gfAcct(acctNum, url);
+  const msgs = d.value||[];
+  msgs.forEach(m=>{
+    const from = m.from?.emailAddress?.address||"?";
+    const convMatch = m.conversationId ? convIdx.get(m.conversationId) : null;
+    const subjMatch = findSchoolInSubject(m.subject, buildSchoolIndex());
+    const exactMatch = allData.find(r=>r.email&&r.email.toLowerCase()===from.toLowerCase());
+    msg += `\nFROM: ${from}\n`;
+    msg += `  Subject: ${(m.subject||"").substring(0,60)}\n`;
+    msg += `  ConvID match: ${convMatch ? convMatch.school : "none"}\n`;
+    msg += `  Subject match: ${subjMatch ? subjMatch.school : "none"}\n`;
+    msg += `  Email match: ${exactMatch ? exactMatch.school : "none"}\n`;
+  });
+
+  alert(msg);
+}
+
 async function doSync(){
   const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   if(!connectedAccounts.length){ _msg("Not connected — click Connect Outlook","#f59e0b"); return; }
@@ -1786,6 +1831,9 @@ function _setUI(acct, on, email){
   const anyOn = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   const s=document.getElementById("outSyncBtn");
   if(s) s.style.display=anyOn?"inline-block":"none";
+  const db=document.getElementById("debugSyncBtn");
+  if(db) db.style.display=anyOn?"inline-block":"none";
+  if(anyOn) updateLastSyncedDisplay();
 }
 
 function toggleGoneCold(){
