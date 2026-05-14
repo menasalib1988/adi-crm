@@ -1371,8 +1371,7 @@ function markEmailed(){
   }
 }
 
-document.getElementById("modalOverlay").addEventListener("click",function(e){ if(e.target===this) closeModal(); });
-document.getElementById("emailModalOverlay").addEventListener("click",function(e){ if(e.target===this) closeEmailModal(); });
+// Modal overlay listeners moved to DOMContentLoaded below
 
 
 // ── OUTLOOK SYNC v2 (school-name matching) ───────────────
@@ -1895,10 +1894,7 @@ function openThreadViewer(id) {
 function closeThreadModal() {
   document.getElementById('threadModalOverlay').classList.remove('open');
 }
-document.addEventListener('DOMContentLoaded', function() {
-  const ov = document.getElementById('threadModalOverlay');
-  if(ov) ov.addEventListener('click', function(e) { if(e.target===this) closeThreadModal(); });
-});
+// threadModalOverlay listener moved to DOMContentLoaded below
 
 async function loadThreads() {
   _showThreadLoading();
@@ -2333,7 +2329,7 @@ function openCalSchoolModal(id){
 function closeCalSchoolModal(){
   document.getElementById('calSchoolModal').classList.remove('open');
 }
-document.getElementById('calSchoolModal').addEventListener('click', function(e){ if(e.target===this) closeCalSchoolModal(); });
+// calSchoolModal listener moved to DOMContentLoaded below
 
 function renderCalSchoolTimeline(id){
   const r = allData.find(x=>x.id===id);
@@ -2716,9 +2712,7 @@ function updateApiKeyBtn() {
   btn.style.color = hasKey ? 'var(--green)' : 'var(--amber)';
 }
 
-document.getElementById('apikeyModalOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeApiKeyModal();
-});
+// apikeyModalOverlay listener moved to DOMContentLoaded below
 
 // ── RESEARCH SCHOOL (API-key aware) ──────────────────────
 async function researchSchool(id, btn) {
@@ -2842,6 +2836,20 @@ function toggleOutreachDay() {
 }
 
 // ── END NEXT OUTREACH DAY ─────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function(){
+  var pairs = [
+    ['modalOverlay',       function(){ closeModal(); }],
+    ['emailModalOverlay',  function(){ closeEmailModal(); }],
+    ['threadModalOverlay', function(){ closeThreadModal(); }],
+    ['calSchoolModal',     function(){ closeCalSchoolModal(); }],
+    ['apikeyModalOverlay', function(){ closeApiKeyModal(); }]
+  ];
+  pairs.forEach(function(p){
+    var el = document.getElementById(p[0]);
+    if(el) el.addEventListener('click', function(e){ if(e.target===this) p[1](); });
+  });
+});
 </script>
 
 <!-- API KEY MODAL -->
