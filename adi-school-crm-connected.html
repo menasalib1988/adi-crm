@@ -288,8 +288,6 @@ tr:hover td{background:var(--surface)}
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
-  <button id="debugSyncBtn" onclick="debugSync()" style="display:none;background:#1a3050;color:#f59e0b;font-size:11px" class="outbar-btn">🔍 Debug</button>
-  <span id="lastSyncedLabel" style="display:none;font-size:11px;color:#64748b;margin-left:6px;"></span>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
@@ -624,16 +622,12 @@ function hydrate(){
   allData.forEach(r => {
     const ov = overrides[r.id];
     if(ov) Object.assign(r, ov);
-
-    // Derive lastContact from sync data already in localStorage
     const dates = [r.lastReplyDate, r.lastEmailSent].filter(Boolean).map(d=>new Date(d)).filter(d=>!isNaN(d));
     if(dates.length){
       const latest = new Date(Math.max(...dates));
       const formatted = latest.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
       if(!r.lastContact || new Date(r.lastContact) < latest) r.lastContact = formatted;
     }
-
-    // Fix status from sync data
     if(r.lastReplyDate && ["not_contacted","contacted","emailed","no_reply"].includes(r.status)) r.status = "replied";
     else if(r.lastEmailSent && ["not_contacted","contacted"].includes(r.status)) r.status = "emailed";
   });
@@ -1542,50 +1536,6 @@ async function _gf(path, opts={}){
   return r.status===204 ? {} : r.json();
 }
 
-
-function updateLastSyncedDisplay(){
-  const lbl=document.getElementById('lastSyncedLabel');
-  if(!lbl) return;
-  const raw=localStorage.getItem('adi_lastSyncedAt');
-  if(!raw) return;
-  const diff=Math.round((Date.now()-new Date(raw))/60000);
-  lbl.textContent = diff<1?'Synced just now':diff===1?'Synced 1 min ago':diff<60?'Synced '+diff+' mins ago':'Synced '+Math.round(diff/60)+'h ago';
-  lbl.style.display='inline';
-}
-
-async function debugSync(){
-  const connectedAccounts=[1,2].filter(n=>_accounts[n].token&&Date.now()<_accounts[n].exp);
-  if(!connectedAccounts.length){ alert("Not connected"); return; }
-  const pb=allData.find(r=>r.school&&r.school.toLowerCase().includes("punchbowl public"));
-  let msg="=== PUNCHBOWL DEBUG ===\n";
-  if(!pb){ msg+="NOT FOUND in allData\n"; }
-  else{
-    msg+=`Found: ${pb.school} (id:${pb.id})\n`;
-    msg+=`email: ${pb.email||"NONE"}\n`;
-    msg+=`status: ${pb.status}\n`;
-    msg+=`lastContact: ${pb.lastContact||"NONE"}\n`;
-    msg+=`lastEmailSent: ${pb.lastEmailSent||"NONE"}\n`;
-    msg+=`lastReplyDate: ${pb.lastReplyDate||"NONE"}\n`;
-    msg+=`conversationIds: ${pb.conversationIds?JSON.stringify(Object.keys(pb.conversationIds)):"NONE"}\n`;
-    msg+=`callLog entries: ${pb.callLog?pb.callLog.length:0}\n`;
-  }
-  const convIdx=new Map();
-  allData.forEach(r=>{ if(r.conversationIds) Object.keys(r.conversationIds).forEach(cid=>convIdx.set(cid,r)); });
-  msg+=`\nconvIdx size: ${convIdx.size}\n`;
-  msg+="\n=== LAST 10 INBOX ===\n";
-  const acctNum=connectedAccounts[0];
-  const url="/me/mailFolders/Inbox/messages?$top=10&$select=from,receivedDateTime,subject,conversationId&$orderby=receivedDateTime desc";
-  const d=await _gfAcct(acctNum,url);
-  (d.value||[]).forEach(m=>{
-    const from=m.from?.emailAddress?.address||"?";
-    const convMatch=m.conversationId?convIdx.get(m.conversationId):null;
-    const subjMatch=findSchoolInSubject(m.subject,buildSchoolIndex());
-    const exactMatch=allData.find(r=>r.email&&r.email.toLowerCase()===from.toLowerCase());
-    msg+=`\nFROM: ${from}\nSubj: ${(m.subject||"").substring(0,50)}\nConvID: ${convMatch?convMatch.school:"none"} | Subj: ${subjMatch?subjMatch.school:"none"} | Email: ${exactMatch?exactMatch.school:"none"}\n`;
-  });
-  alert(msg);
-}
-
 async function doSync(){
   const connectedAccounts = [1,2].filter(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   if(!connectedAccounts.length){ _msg("Not connected — click Connect Outlook","#f59e0b"); return; }
@@ -1652,7 +1602,7 @@ async function doSync(){
       const convIdx = new Map();
       allData.forEach(r=>{ if(r.conversationIds) Object.keys(r.conversationIds).forEach(cid=>convIdx.set(cid,r)); });
 
-      let url2="/me/mailFolders/Inbox/messages?$top=100&$select=from,receivedDateTime,subject,bodyPreview,isRead,conversationId&$orderby=receivedDateTime desc";
+      let url2="/me/mailFolders/Inbox/messages?$top=100&$select=from,receivedDateTime,subject,bodyPreview,body,isRead,conversationId&$orderby=receivedDateTime desc";
       for(let p=0;p<10;p++){
         const d = await _gfAcct(acctNum, url2);
         const msgs = d.value||[];
@@ -1660,14 +1610,32 @@ async function doSync(){
         msgs.forEach(msg=>{
           const dt = new Date(msg.receivedDateTime);
           let school = null;
-          // 1. Best match: conversationId — links reply directly to the school you emailed
-          if(msg.conversationId) school = convIdx.get(msg.conversationId)||null;
-          // 2. Subject line match
-          if(!school) school = findSchoolInSubject(msg.subject, idx);
-          // 3. Exact email address match
-          if(!school){
-            const em=(msg.from?.emailAddress?.address||"").toLowerCase();
-            school=allData.find(r=>r.email&&r.email.toLowerCase()===em)||null;
+
+          // ── WEBSITE ENQUIRY: extract school name from form body
+          const isWebEnquiry = (msg.subject||"").includes("Enquire - Australian Digital Incursions");
+          if(isWebEnquiry){
+            // Pull school name from the form body — "Primary School Name: Punchbowl Public school"
+            const bodyText = (msg.body?.content||msg.bodyPreview||"").replace(/<[^>]+>/g," ");
+            const snParts = bodyText.split("School Name:");
+            const rawName = snParts.length > 1 ? snParts[snParts.length-1].split("Name:")[0].split("Email")[0].split("Phone")[0].split("Year")[0].trim() : null;
+            if(rawName && rawName.length > 2){
+              const nameLower = rawName.toLowerCase().replace(/[^a-z ]/g,"").trim();
+              school = allData.find(r=>{
+                const sn = r.school.toLowerCase();
+                return sn === nameLower || sn.includes(nameLower) || nameLower.includes(sn.replace(/public|primary|school/g,"").trim());
+              }) || null;
+            }
+            if(!school) return; // skip — don't misattribute to wrong school
+          } else {
+            // 1. Best match: conversationId
+            if(msg.conversationId) school = convIdx.get(msg.conversationId)||null;
+            // 2. Subject line match
+            if(!school) school = findSchoolInSubject(msg.subject, idx);
+            // 3. Exact email address match
+            if(!school){
+              const em=(msg.from?.emailAddress?.address||"").toLowerCase();
+              school=allData.find(r=>r.email&&r.email.toLowerCase()===em)||null;
+            }
           }
           if(school){
             replyCount++;
@@ -1855,10 +1823,6 @@ function _setUI(acct, on, email){
   const anyOn = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   const s=document.getElementById("outSyncBtn");
   if(s) s.style.display=anyOn?"inline-block":"none";
-  const db=document.getElementById("debugSyncBtn");
-  if(db) db.style.display=anyOn?"inline-block":"none";
-  const lsl=document.getElementById("lastSyncedLabel");
-  if(lsl&&anyOn) { lsl.style.display="inline"; updateLastSyncedDisplay(); }
 }
 
 function toggleGoneCold(){
