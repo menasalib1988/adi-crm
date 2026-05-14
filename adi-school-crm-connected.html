@@ -288,6 +288,7 @@ tr:hover td{background:var(--surface)}
   </div>
   <div id="outMsg" style="font-size:11px;font-family:monospace;color:#666;flex:1"></div>
   <button id="outSyncBtn" onclick="doSync()" style="display:none;background:#1a3050;color:#38bdf8" class="outbar-btn">🔄 Sync Now</button>
+  <span id="lastSyncedLabel" style="display:none;font-size:11px;color:#64748b;margin-left:6px;"></span>
   <button onclick="toggleGoneCold()" style="background:#1a3050;color:#f59e0b" class="outbar-btn" id="goneColdBtn">🥶 Gone Cold <span id="goneColdCount" style="background:#f59e0b;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleCalendarPanel()" style="background:#1a3050;color:#34d399" class="outbar-btn" id="calSyncBtn">📅 Calendar <span id="calMismatchCount" style="background:#34d399;color:#0a0e1a;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">0</span></button>
   <button onclick="toggleActivity()" style="background:#1a3050;color:#a78bfa" class="outbar-btn">📊 Activity</button>
@@ -1656,6 +1657,8 @@ async function doSync(){
     updateActivityPanel();
     updateGoneColdPanel();
     const coldCount = allData.filter(r=>r.goneCold).length;
+    localStorage.setItem('adi_lastSyncedAt', new Date().toISOString());
+    updateLastSyncedDisplay();
     _msg("✓ Done — "+matched+" updated · "+sentCount+" sent · "+replyCount+" replies · "+noReplyCount+" no-reply · "+coldCount+" gone cold","#4ade80");
     render();
 
@@ -1777,6 +1780,7 @@ function _setUI(acct, on, email){
   const anyOn = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
   const s=document.getElementById("outSyncBtn");
   if(s) s.style.display=anyOn?"inline-block":"none";
+  if(anyOn) updateLastSyncedDisplay();
 }
 
 function toggleGoneCold(){
@@ -1832,11 +1836,13 @@ window.addEventListener('load',function(){
     const anyConnected = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
     if(anyConnected){ _msg("Auto-syncing…","#38bdf8"); doSync(); }
   }, 1200);
-  // Re-sync every 30 minutes while page is open
+  // Re-sync every 5 minutes while page is open
   setInterval(()=>{
     const anyConnected = [1,2].some(n=>_accounts[n].token && Date.now()<_accounts[n].exp);
     if(anyConnected) doSync();
-  }, 30 * 60 * 1000);
+  }, 5 * 60 * 1000);
+  // Tick the "last synced" display every 30 seconds
+  setInterval(updateLastSyncedDisplay, 30000);
 });
 // ── END OUTLOOK SYNC ──────────────────────────────────────
 
@@ -2488,6 +2494,21 @@ function renderOutreachStats() {
     <div class="outreach-stat"><div class="val" style="color:var(--teal)">${inClusters.toLocaleString()}</div><div class="lbl">Near Visited</div></div>
     <div class="outreach-stat"><div class="val" style="color:var(--purple)">${nonGov.toLocaleString()}</div><div class="lbl">Non-Gov</div></div>
   `;
+}
+
+function updateLastSyncedDisplay() {
+  const lbl = document.getElementById('lastSyncedLabel');
+  if (!lbl) return;
+  const raw = localStorage.getItem('adi_lastSyncedAt');
+  if (!raw) return;
+  const diff = Math.round((Date.now() - new Date(raw)) / 60000);
+  let text;
+  if (diff < 1) text = 'Synced just now';
+  else if (diff === 1) text = 'Synced 1 min ago';
+  else if (diff < 60) text = `Synced ${diff} mins ago`;
+  else text = `Synced ${Math.round(diff/60)}h ago`;
+  lbl.textContent = text;
+  lbl.style.display = 'inline';
 }
 
 function updateSessionBar() {
