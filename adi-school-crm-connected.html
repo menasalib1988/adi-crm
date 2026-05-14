@@ -622,6 +622,18 @@ function hydrate(){
   allData.forEach(r => {
     const ov = overrides[r.id];
     if(ov) Object.assign(r, ov);
+
+    // Use lastReplyDate or lastEmailSent to fill lastContact if missing or older
+    const dates = [r.lastReplyDate, r.lastEmailSent].filter(Boolean).map(d=>new Date(d)).filter(d=>!isNaN(d));
+    if(dates.length){
+      const latest = new Date(Math.max(...dates));
+      const formatted = latest.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
+      if(!r.lastContact || new Date(r.lastContact) < latest) r.lastContact = formatted;
+    }
+
+    // Fix status based on what sync already found
+    if(r.lastReplyDate && ["not_contacted","contacted","emailed","no_reply"].includes(r.status)) r.status = "replied";
+    else if(r.lastEmailSent && ["not_contacted","contacted"].includes(r.status)) r.status = "emailed";
   });
 
   const lgas = [...new Set(allData.map(r=>r.lga))].sort();
@@ -1636,81 +1648,7 @@ async function doSync(){
       }
     } // end account loop
 
-    // ── SCAN WEBSITE ENQUIRY EMAILS ──────────────────────
-    // These come from your WordPress contact form with subject "Enquire - Australian Digital Incursions"
-    // and contain school name, contact name, email, phone in the body
-    _msg("Scanning for website enquiries…","#38bdf8");
-    try {
-      const enquiryUrl = "/me/mailFolders/Inbox/messages?$top=50&$select=from,receivedDateTime,subject,body&$filter=contains(subject,'Enquire - Australian Digital Incursions')&$orderby=receivedDateTime desc";
-      const eq = await _gfAcct(1, enquiryUrl);
-      (eq.value||[]).forEach(msg=>{
-        const dt = new Date(msg.receivedDateTime);
-        const body = msg.body?.content || msg.body?.text || "";
-        // Strip HTML tags for easier parsing
-        const text = body.replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/\s+/g," ");
-
-        // Extract fields from the form body
-        const schoolMatch  = text.match(/Primary School Name:\s*([^\n]+?)(?:\s*Name:|$)/i) ||
-                             text.match(/School Name:\s*([^\n]+?)(?:\s*Name:|$)/i);
-        const contactMatch = text.match(/Name:\s*([^\n]+?)(?:\s*Email|$)/i);
-        const emailMatch   = text.match(/Email Address:\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i);
-        const phoneMatch   = text.match(/Phone Number:\s*([0-9()\s\-+]{6,20})/i);
-        const yearMatch    = text.match(/Year Levels[^:]*:\s*([^\n]+)/i);
-        const dateMatch    = text.match(/Preferred Date[^:]*:\s*([^\n]+)/i);
-        const msgMatch     = text.match(/Message:\s*([\s\S]+?)(?:---|Date:|$)/i);
-
-        const schoolName  = schoolMatch  ? schoolMatch[1].trim()  : null;
-        const contactName = contactMatch ? contactMatch[1].trim() : null;
-        const contactEmail= emailMatch   ? emailMatch[1].trim()   : null;
-        const phone       = phoneMatch   ? phoneMatch[1].trim()   : null;
-        const notes       = [
-          yearMatch  ? "Year levels: "+yearMatch[1].trim()  : null,
-          dateMatch  ? "Preferred date: "+dateMatch[1].trim(): null,
-          msgMatch   ? msgMatch[1].trim().substring(0,300)  : null
-        ].filter(Boolean).join(" | ");
-
-        if(!schoolName) return; // can't match without a school name
-
-        // Find the school in our database
-        const nameLower = schoolName.toLowerCase().trim();
-        let school = allData.find(r=>r.school&&r.school.toLowerCase().trim()===nameLower);
-        if(!school){
-          // Fuzzy: check if DB school name contains the enquiry name or vice versa
-          school = allData.find(r=>r.school&&(
-            r.school.toLowerCase().includes(nameLower) ||
-            nameLower.includes(r.school.toLowerCase().replace(/\s*(public|primary|school)\s*/gi,"").trim())
-          ))||null;
-        }
-
-        if(school){
-          matched++;
-          // Update contact details from the form
-          if(contactName && !school.contact) school.contact = contactName;
-          if(contactEmail && !school.email.includes(contactEmail)) {
-            // Save the personal email as a note if we already have the generic one
-            if(school.email && school.email !== contactEmail){
-              school.notes = (school.notes||"") + (school.notes?" | ":"") + "Direct email: "+contactEmail;
-            } else {
-              school.email = contactEmail;
-            }
-          }
-          if(phone && !school.phone) school.phone = phone;
-          if(notes) school.notes = (school.notes||"") + (school.notes?" | ":"") + "Enquiry: "+notes;
-
-          // Update dates and status
-          if(!school.lastReplyDate || new Date(school.lastReplyDate)<dt){
-            school.lastReplyDate = msg.receivedDateTime;
-            school.lastContact   = dt.toLocaleDateString("en-AU",{day:"2-digit",month:"short",year:"numeric"});
-          }
-          if(["not_contacted","contacted","emailed","no_reply"].includes(school.status)){
-            school.status = "replied";
-          }
-          saveOverride(school);
-        }
-      });
-    } catch(e){ /* enquiry scan is best-effort */ }
-
-
+    // ── FLAG NO-REPLY after 3 days ───────────────────────
     const now=new Date();
     allData.forEach(r=>{
       if(r.status==="emailed"&&r.lastEmailSent){
